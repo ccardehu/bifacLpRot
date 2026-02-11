@@ -209,9 +209,9 @@ Rcpp::List ALM_cpp(arma::mat& A,
     arma::mat Kpq = commutation_matrix(B.n_rows, B.n_cols);
     const arma::mat AAt = A * A.t();
 
-    double outn = arma::norm(B,1);
+    double outn = arma::accu(arma::abs(B));
     if (verbose) {
-        Rcpp::Rcout << "\n L1-norm(B) (iter: 0): " << std::fixed << std::setprecision(3) << outn;
+        Rcpp::Rcout << "\n g(B) (iter: 0): " << std::fixed << std::setprecision(3) << outn;
     }
 
     int i = 0, j = 0;
@@ -281,10 +281,10 @@ Rcpp::List ALM_cpp(arma::mat& A,
         L = arma::clamp(L + rho * (AAt - B * Phi * B.t()), -Lmax, Lmax);
         L = 0.5 * (L + L.t());
 
-        outn = arma::norm(B,1);
+        outn = arma::accu(arma::abs(B));
 
         if (verbose && (i % v_every == 0)) {
-            Rcpp::Rcout << "\r L1-norm(B) (outer iter: " << i
+            Rcpp::Rcout << "\r g(B) (outer iter: " << i
                         << ", inner iter: " << j << "): " << std::fixed
                         << std::setprecision(3) << outn << std::flush;
         }
@@ -306,7 +306,7 @@ Rcpp::List ALM_cpp(arma::mat& A,
     fixB_internal(B, Phi);
 
     if (verbose) {
-        Rcpp::Rcout << "\r L1-norm(B) (outer iter: " << i
+        Rcpp::Rcout << "\r g(B) (outer iter: " << i
                     << ", inner iter: " << j << "): " << std::fixed
                     << std::setprecision(3) << outn << std::endl;
     }
@@ -314,7 +314,7 @@ Rcpp::List ALM_cpp(arma::mat& A,
     return Rcpp::List::create(
         Rcpp::Named("B") = B,
         Rcpp::Named("Phi") = Phi,
-        Rcpp::Named("L1.end") = outn,
+        Rcpp::Named("obj.end") = outn,
         Rcpp::Named("cons.end") = arma::norm(AAt - B * Phi * B.t(), "fro"),
         Rcpp::Named("rho.end") = rho,
         Rcpp::Named("outer.iter.end") = i,

@@ -18,3 +18,6 @@ Imports:
     Rcpp
 URL: https://github.com/ccardehu/bifacL1rot
 BugReports: https://github.com/ccardehu/bifacL1rot/issues
+Suggests: 
+    future,
+    future.apply

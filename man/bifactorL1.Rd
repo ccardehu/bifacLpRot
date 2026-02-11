@@ -16,16 +16,20 @@ bifactorL1(
   tol1 = 1e-06,
   tol2 = 1e-04,
   verbose = TRUE,
-  v.every = 10,
+  v.every = 10L,
   Lmax = 20,
   c1 = 1.05,
-  c2 = 0.25
+  c2 = 0.25,
+  nstart = 1L,
+  seed = NULL,
+  ncores = 1
 )
 }
 \arguments{
 \item{A}{Input factor loading matrix (p x q)}
 
-\item{Bstart}{Optional starting value for B matrix. Defaults to A.}
+\item{Bstart}{Optional starting value for B matrix. Defaults to A.
+Ignored when \code{nstart > 1}.}
 
 \item{Phi}{Optional starting correlation matrix. Defaults to identity.}
 
@@ -52,17 +56,29 @@ bifactorL1(
 \item{c1}{Multiplicative factor for rho increase (must be > 1). Default 1.05.}
 
 \item{c2}{Threshold for rho update (must be in (0,1)). Default 0.25.}
+
+\item{nstart}{Number of random starts. Default 1 (no random restarts).
+When \code{nstart > 1}, each start uses a random orthogonal rotation of \code{A}
+and the solution with the smallest objective value is returned.}
+
+\item{seed}{Optional integer seed for reproducibility of random starts. Default NULL.}
+
+\item{ncores}{Number of parallel workers. Default 1 (sequential).
+Requires the \code{future} and \code{future.apply} packages for \code{ncores > 1}.
+If NULL, defaults to \code{ncores = future::availableCores() - 2}.}
 }
 \value{
 A list containing:
 \itemize{
-\item \code{B} - Estimated factor loading matrix (follows a bi-factor structure)
-\item \code{Phi} - Estimated factor correlation matrix (follows a bi-factor structure)
-\item \code{L1.end} - L1-norm for rotated solution B
-\item \code{cons.end} - Value of the constraint at solution B
-\item \code{rho.end} - Final value of rho
-\item \code{outer.iter.end} - Number of outer iterations at convergence
-\item \code{conv} - Logical; TRUE if converged before maxit.ou
+\item \code{B}: Estimated factor loading matrix (follows a bi-factor structure)
+\item \code{Phi}: Estimated factor correlation matrix (follows a bi-factor structure)
+\item \code{obj.end}: objective function evaluated at rotated solution B
+\item \code{cons.end}: Value of the constraint at solution B
+\item \code{rho.end}: Final value of rho
+\item \code{outer.iter.end}: Number of outer iterations at convergence
+\item \code{conv}: Logical; TRUE if converged before maxit.ou
+\item \code{nstart}: Number of random starts used
+\item \code{all.obj}: Vector of objective values from all starts (only when \code{nstart > 1})
 }
 }
 \description{
@@ -81,9 +97,12 @@ A[,4] = runif(20, 0.5, 1) * rbinom(20, 1, 0.25)
 Ah =  array(rnorm(length(A), sd = .5), dim = dim(A))
 Tr = eigen(t(Ah) \%*\% Ah)$vectors
 Ah = (A)\%*\%(Tr)
-res = bifacL1rot::bifactorL1(Ah)
-Arot = res$B
-Phi = res$Phi
+
+# Single start
+res <- bifacL1rot::bifactorL1(Ah)
+
+# Multiple random starts in parallel
+res <- bifacL1rot::bifactorL1(Ah, nstart = 10, ncores = 4, seed = 1234)
 }
 
 }
