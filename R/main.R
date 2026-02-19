@@ -9,6 +9,7 @@
 #' @param t Initial step size. Default 1/1000.
 #' @param maxit.ou Maximum outer iterations. Default 5000.
 #' @param maxit.in Maximum inner iterations. Default 300.
+#' @param hesit Iteration number to add Hessian information. Default 50.
 #' @param orthogonal Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.
 #' @param tol1 Convergence tolerance for parameter changes. Default 1e-6.
 #' @param tol2 Tolerance for backtracking line search. Default 1e-4.
@@ -63,7 +64,7 @@
 #' @useDynLib bifacL1rot, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 bifactorL1 <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1/1000,
-                maxit.ou = 5000, maxit.in = 300, orthogonal = FALSE,
+                maxit.ou = 5000, maxit.in = 300, hesit = 50, orthogonal = FALSE,
                 tol1 = 1e-6, tol2 = 1e-4, verbose = TRUE, v.every = 10L,
                 Lmax = 20, c1 = 1.05, c2 = 0.25,
                 nstart = 1L, seed = NULL, ncores = 1) {
@@ -76,6 +77,7 @@ bifactorL1 <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
 
     maxit.ou = as.integer(maxit.ou)
     maxit.in = as.integer(maxit.in)
+    hesit = as.integer(hesit)
     v.every = as.integer(v.every)
     nstart = as.integer(nstart)
     if (nstart < 1L) stop("nstart must be >= 1")
@@ -103,6 +105,7 @@ bifactorL1 <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
             t = t,
             maxit_ou = maxit.ou,
             maxit_in = maxit.in,
+            hesit = hesit,
             orthogonal = orthogonal,
             tol1 = tol1,
             tol2 = tol2,
@@ -145,6 +148,7 @@ bifactorL1 <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
             t = t,
             maxit_ou = maxit.ou,
             maxit_in = maxit.in,
+            hesit = hesit,
             orthogonal = orthogonal,
             tol1 = tol1,
             tol2 = tol2,

@@ -190,7 +190,7 @@ Rcpp::List ALM_cpp(arma::mat& A,
                    Rcpp::Nullable<arma::mat> Bstart_ = R_NilValue,
                    Rcpp::Nullable<arma::mat> Phi_ = R_NilValue,
                    double rho = 1.0, double t = 0.001,
-                   int maxit_ou = 5000, int maxit_in = 300,
+                   int maxit_ou = 5000, int maxit_in = 300, int hesit = 50,
                    bool orthogonal = false,
                    double tol1 = 1e-6, double tol2 = 1e-4,
                    bool verbose = true, int v_every = 10,
@@ -240,7 +240,7 @@ Rcpp::List ALM_cpp(arma::mat& A,
             arma::vec ihess;
             arma::mat ihgb;
 
-            if (i > 50) {
+            if (i > hesit) {
                 ihess = 1.0 / hessB(B, R, L, AAt, Kpq, rho);
                 tB = bt4B(Bn, Rn, L, AAt, rho, gradb, ihess, tB, maxit_in, 0.5, tol2);
                 ihgb = arma::reshape(ihess % arma::vectorise(gradb),
@@ -264,7 +264,7 @@ Rcpp::List ALM_cpp(arma::mat& A,
 
             if (!orthogonal) {
                 arma::mat gradr = gradR(B, R, L, AAt, rho);
-                if (i > 50) {
+                if (i > hesit) {
                     tR = bt4R(Bn, Rn, L, AAt, rho, gradr, tR, maxit_in, 0.5, tol2);
                 }
                 arma::mat gR = gradr * tR / NP;

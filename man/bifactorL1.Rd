@@ -13,6 +13,7 @@ bifactorL1(
   t = 1/1000,
   maxit.ou = 5000,
   maxit.in = 300,
+  hesit = 50,
   orthogonal = FALSE,
   tol1 = 1e-06,
   tol2 = 1e-04,
@@ -43,6 +44,8 @@ Ignored when \code{nstart > 1}.}
 \item{maxit.ou}{Maximum outer iterations. Default 5000.}
 
 \item{maxit.in}{Maximum inner iterations. Default 300.}
+
+\item{hesit}{Iteration number to add Hessian information. Default 50.}
 
 \item{orthogonal}{Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.}
 
