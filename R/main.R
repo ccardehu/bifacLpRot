@@ -122,7 +122,7 @@ bifactorL1 <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
     # --- Multiple random starts ---
     if (is.null(Bstart)) {
         warning("Bstart is NULL; random rotations of A are used instead.")
-        BStart = as.matrix(A)
+        Bstart = as.matrix(A)
     }
 
     # Pre-generate seeds for reproducibility
