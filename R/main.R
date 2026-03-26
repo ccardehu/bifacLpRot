@@ -66,7 +66,7 @@
 bifactorL1 <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1/1000,
                 maxit.ou = 5000, maxit.in = 300, hesit = 50, orthogonal = FALSE,
                 tol1 = 1e-6, tol2 = 1e-4, verbose = TRUE, v.every = 10L,
-                Lmax = 20, c1 = 1.05, c2 = 0.25,
+                Lmax = 20, c1 = 1.05, c2 = 0.25, p = 1,
                 nstart = 1L, seed = NULL, ncores = 1) {
 
     # Input validation
@@ -113,7 +113,8 @@ bifactorL1 <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
             v_every = v.every,
             Lmax = Lmax,
             c1 = c1,
-            c2 = c2
+            c2 = c2,
+            p = p
         )
         result$nstart = 1L
         return(result)
@@ -157,7 +158,8 @@ bifactorL1 <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
             v_every = v.every,
             Lmax = Lmax,
             c1 = c1,
-            c2 = c2
+            c2 = c2,
+            p = p
         )
     }
 
@@ -182,7 +184,7 @@ bifactorL1 <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
     best = results[[best_idx]]
 
     if (verbose) {
-        message(sprintf("Random starts: %d | Best obj: %.4f (start %d) | Range: [%.4f, %.4f]",
+        message(sprintf("Random starts: %d | Best obj: %.3f (start %d) | Range: [%.3f, %.3f]",
                         nstart, obj_vals[best_idx], best_idx,
                         min(obj_vals), max(obj_vals)))
     }

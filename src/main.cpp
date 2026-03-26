@@ -10,6 +10,7 @@ double obj2(arma::mat& B, arma::mat& R, arma::mat& L,
 
     arma::mat Phi = R * R.t();
     arma::mat resid = AAt - B * Phi * B.t();
+    arma::mat tmp1 = L.t() * resid;
 
     double term1 = 0.5 * rho * arma::accu(arma::square(resid));
     double term2 = arma::accu(L % resid);
@@ -59,9 +60,71 @@ arma::mat gradR(arma::mat& B, arma::mat& R, arma::mat& L,
     return (dR);
 }
 
-arma::mat soft_threshold(arma::mat X, arma::vec lambda) {
+arma::mat prox_LpOne(arma::mat X, arma::vec lambda) {
     arma::mat lam_mat = arma::reshape(lambda, X.n_rows, X.n_cols);
     return arma::sign(X) % arma::clamp(arma::abs(X) - lam_mat, 0.0, arma::datum::inf);
+}
+
+double LpOneHalf(double x, double lam){
+    double tau = 1.5 * std::pow(lam, 2.0/3.0);
+    if(std::abs(x) <= tau){
+        return 0.0;
+    }
+    double arg = -(3.0 * std::sqrt(3.0) / 4.0) * lam * std::pow(std::abs(x), -1.5);
+    if (arg < -1.0) arg = -1.0;
+    if (arg >  1.0) arg =  1.0;
+    double out = (2.0 / 3.0) * x * (1.0 + std::cos((2.0 / 3.0) * std::acos(arg)));
+    return out;
+}
+
+arma::mat prox_LpOneHalf(arma::mat X, arma::vec lambda){
+    arma::mat lam_mat = arma::reshape(lambda, X.n_rows, X.n_cols);
+    arma::mat out(arma::size(X));
+    for(arma::uword j = 0; j < X.n_cols; j++){
+        for(arma::uword i = 0; i < X.n_rows; i++){
+            double tmp1 = X(i,j);
+            double tmp2 = lam_mat(i,j);
+            out(i,j) = LpOneHalf(tmp1, tmp2);
+        }
+    }
+    return out;
+}
+
+double LpTwoThirds(double x, double lam){
+    double tau = 2.0 * std::pow(2.0/3.0 * lam, 0.75);
+    if(std::abs(x) <= tau){
+        return 0.0;
+    }
+    double x2 = std::pow(x,2.0);
+    double x4 = x2*x2;
+    double lam3 = std::pow(lam,3.0);
+
+    double tmp1 = x4/256.0 - 8.0/729.0*lam3;
+    if(tmp1 < 0.0) tmp1 = 0.0;  // numerical safety
+    tmp1 = std::sqrt(tmp1);
+    double t = std::cbrt(x2/16.0 + tmp1) + std::cbrt(x2/16.0 - tmp1);
+
+    double sqr2t = std::sqrt(2.0*t);
+    double inner = 2.0*std::abs(x)/sqr2t - 2.0*t;
+    if(inner < 0.0) inner = 0.0;  // numerical safety
+
+    double val = sqr2t + std::sqrt(inner);
+    double out = std::pow(val,3.0)/8.0;
+    if(x < 0.0) out = -out;
+    return out;
+}
+
+arma::mat prox_LpTwoThirds(arma::mat X, arma::vec lambda){
+    arma::mat lam_mat = arma::reshape(lambda, X.n_rows, X.n_cols);
+    arma::mat out(arma::size(X));
+    for(arma::uword j = 0; j < X.n_cols; j++){
+        for(arma::uword i = 0; i < X.n_rows; i++){
+            double tmp1 = X(i,j);
+            double tmp2 = lam_mat(i,j);
+            out(i,j) = LpTwoThirds(tmp1, tmp2);
+        }
+    }
+    return out;
 }
 
 
@@ -104,7 +167,6 @@ void fixB_internal(arma::mat& B,
          signs(i) = (B(max_idx, i) >= 0) ? 1.0 : -1.0;
          B.col(i) *= signs(i);
      }
-
 
      if(R_.isNotNull()) {
          Rcpp::NumericMatrix Rmat(R_.get());
@@ -194,11 +256,13 @@ Rcpp::List ALM_cpp(arma::mat& A,
                    bool orthogonal = false,
                    double tol1 = 1e-6, double tol2 = 1e-4,
                    bool verbose = true, int v_every = 10,
-                   double Lmax = 20.0, double c1 = 1.05, double c2 = 0.25) {
+                   double Lmax = 20.0, double c1 = 1.05, double c2 = 0.25,
+                   double p = 1) {
 
     // Input validation
     if (c1 <= 1.0) Rcpp::stop("Fix c1 argument, must be c1 > 1");
     if (c2 <= 0.0 || c2 >= 1.0) Rcpp::stop("Fix c2 argument, must be 0 < c2 < 1");
+    if (p <= 0.0 || p > 1.0) Rcpp::stop("Fix c2 argument, must be 0 < p <= 1");
 
     // Initialization of B and Phi
     arma::mat Phi0 = Phi0_.isNotNull() ? Rcpp::as<arma::mat>(Phi0_) : arma::eye(A.n_cols, A.n_cols);
@@ -256,7 +320,15 @@ Rcpp::List ALM_cpp(arma::mat& A,
             // Update remaining columns with soft thresholding
             arma::mat B_rest = B.cols(1, B.n_cols - 1) - ihgb.cols(1, ihgb.n_cols - 1);
             arma::vec ihess_rest = ihess.subvec(B.n_rows, ihess.n_elem - 1);
-            Bn.cols(1, Bn.n_cols - 1) = soft_threshold(B_rest, tB * ihess_rest);
+            if(p == 1){
+                Bn.cols(1, Bn.n_cols - 1) = prox_LpOne(B_rest, tB * ihess_rest);
+            } else if (p == 0.50){
+                Bn.cols(1, Bn.n_cols - 1) = prox_LpOneHalf(B_rest, tB * ihess_rest);
+            } else if (p == 0.66){
+                Bn.cols(1, Bn.n_cols - 1) = prox_LpTwoThirds(B_rest, tB * ihess_rest);
+            } else {
+                Rcpp::stop("Check value of p");
+            }
 
             if (!Bn.is_finite()) {
                 Rcpp::stop("Check B at iter: %i, inner: %i", i, j);

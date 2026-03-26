@@ -22,6 +22,7 @@ bifactorL1(
   Lmax = 20,
   c1 = 1.05,
   c2 = 0.25,
+  p = 1,
   nstart = 1L,
   seed = NULL,
   ncores = 1

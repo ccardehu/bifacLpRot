@@ -46,8 +46,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // ALM_cpp
-Rcpp::List ALM_cpp(arma::mat& A, Rcpp::Nullable<arma::mat> Phi0_, Rcpp::Nullable<arma::mat> Bstart_, Rcpp::Nullable<arma::mat> Phi_, double rho, double t, int maxit_ou, int maxit_in, int hesit, bool orthogonal, double tol1, double tol2, bool verbose, int v_every, double Lmax, double c1, double c2);
-RcppExport SEXP _bifacL1rot_ALM_cpp(SEXP ASEXP, SEXP Phi0_SEXP, SEXP Bstart_SEXP, SEXP Phi_SEXP, SEXP rhoSEXP, SEXP tSEXP, SEXP maxit_ouSEXP, SEXP maxit_inSEXP, SEXP hesitSEXP, SEXP orthogonalSEXP, SEXP tol1SEXP, SEXP tol2SEXP, SEXP verboseSEXP, SEXP v_everySEXP, SEXP LmaxSEXP, SEXP c1SEXP, SEXP c2SEXP) {
+Rcpp::List ALM_cpp(arma::mat& A, Rcpp::Nullable<arma::mat> Phi0_, Rcpp::Nullable<arma::mat> Bstart_, Rcpp::Nullable<arma::mat> Phi_, double rho, double t, int maxit_ou, int maxit_in, int hesit, bool orthogonal, double tol1, double tol2, bool verbose, int v_every, double Lmax, double c1, double c2, double p);
+RcppExport SEXP _bifacL1rot_ALM_cpp(SEXP ASEXP, SEXP Phi0_SEXP, SEXP Bstart_SEXP, SEXP Phi_SEXP, SEXP rhoSEXP, SEXP tSEXP, SEXP maxit_ouSEXP, SEXP maxit_inSEXP, SEXP hesitSEXP, SEXP orthogonalSEXP, SEXP tol1SEXP, SEXP tol2SEXP, SEXP verboseSEXP, SEXP v_everySEXP, SEXP LmaxSEXP, SEXP c1SEXP, SEXP c2SEXP, SEXP pSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -68,7 +68,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type Lmax(LmaxSEXP);
     Rcpp::traits::input_parameter< double >::type c1(c1SEXP);
     Rcpp::traits::input_parameter< double >::type c2(c2SEXP);
-    rcpp_result_gen = Rcpp::wrap(ALM_cpp(A, Phi0_, Bstart_, Phi_, rho, t, maxit_ou, maxit_in, hesit, orthogonal, tol1, tol2, verbose, v_every, Lmax, c1, c2));
+    Rcpp::traits::input_parameter< double >::type p(pSEXP);
+    rcpp_result_gen = Rcpp::wrap(ALM_cpp(A, Phi0_, Bstart_, Phi_, rho, t, maxit_ou, maxit_in, hesit, orthogonal, tol1, tol2, verbose, v_every, Lmax, c1, c2, p));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -77,7 +78,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_bifacL1rot_fixB", (DL_FUNC) &_bifacL1rot_fixB, 2},
     {"_bifacL1rot_freeR", (DL_FUNC) &_bifacL1rot_freeR, 1},
     {"_bifacL1rot_commutation_matrix", (DL_FUNC) &_bifacL1rot_commutation_matrix, 2},
-    {"_bifacL1rot_ALM_cpp", (DL_FUNC) &_bifacL1rot_ALM_cpp, 17},
+    {"_bifacL1rot_ALM_cpp", (DL_FUNC) &_bifacL1rot_ALM_cpp, 18},
     {NULL, NULL, 0}
 };
 
