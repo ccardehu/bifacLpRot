@@ -79,15 +79,24 @@ double LpOneHalf(double x, double lam){
 
 arma::mat prox_LpOneHalf(arma::mat X, arma::vec lambda){
     arma::mat lam_mat = arma::reshape(lambda, X.n_rows, X.n_cols);
-    arma::mat out(arma::size(X));
-    for(arma::uword j = 0; j < X.n_cols; j++){
-        for(arma::uword i = 0; i < X.n_rows; i++){
-            double tmp1 = X(i,j);
-            double tmp2 = lam_mat(i,j);
-            out(i,j) = LpOneHalf(tmp1, tmp2);
-        }
-    }
-    return out;
+    arma::mat tau_mat = 1.5*arma::pow(lam_mat,2.0/3.0);
+    arma::mat fix_mat = arma::conv_to<arma::mat>::from(arma::abs(X) > tau_mat);
+    arma::mat X_safe = arma::abs(X) + (1.0 - fix_mat);
+
+    arma::mat arg_mat = -(3.0 * std::sqrt(3.0) / 4.0) * lam_mat % arma::pow(X_safe, -1.5);
+    arg_mat = arma::clamp(arg_mat, -1.0, 1.0);
+    arma::mat out = (2.0 / 3.0) * X % (1.0 + arma::cos((2.0 / 3.0) * arma::acos(arg_mat)));
+    return out % fix_mat;
+
+        // arma::mat out(arma::size(X));
+    // for(arma::uword j = 0; j < X.n_cols; j++){
+    //     for(arma::uword i = 0; i < X.n_rows; i++){
+    //         double tmp1 = X(i,j);
+    //         double tmp2 = lam_mat(i,j);
+    //         out(i,j) = LpOneHalf(tmp1, tmp2);
+    //     }
+    // }
+    // return out;
 }
 
 double LpTwoThirds(double x, double lam){
@@ -116,15 +125,43 @@ double LpTwoThirds(double x, double lam){
 
 arma::mat prox_LpTwoThirds(arma::mat X, arma::vec lambda){
     arma::mat lam_mat = arma::reshape(lambda, X.n_rows, X.n_cols);
-    arma::mat out(arma::size(X));
-    for(arma::uword j = 0; j < X.n_cols; j++){
-        for(arma::uword i = 0; i < X.n_rows; i++){
-            double tmp1 = X(i,j);
-            double tmp2 = lam_mat(i,j);
-            out(i,j) = LpTwoThirds(tmp1, tmp2);
-        }
-    }
-    return out;
+    arma::mat tau_mat = 2.0 * arma::pow((2.0 / 3.0) * lam_mat, 0.75);
+    arma::mat fix_mat = arma::conv_to<arma::mat>::from(arma::abs(X) > tau_mat);
+    arma::mat X_safe = arma::abs(X) + (1.0 - fix_mat);
+
+    arma::mat X2 = arma::square(X_safe);
+    arma::mat X4 = arma::square(X2);
+    arma::mat lam_mat3 = arma::pow(lam_mat, 3.0);
+
+    arma::mat tmp1 = arma::clamp(X4 / 256.0 - 8.0 / 729.0 * lam_mat3, 0.0, arma::datum::inf);
+    tmp1 = arma::sqrt(tmp1);
+
+    // but arma::pow() fails for negative bases with fractional exponents,
+    // so split into sign and magnitude
+    arma::mat tmp2p = X2 / 16.0 + tmp1;
+    arma::mat tmp2m = X2 / 16.0 - tmp1;
+    arma::mat t = arma::sign(tmp2p)  % arma::pow(arma::abs(tmp2p),  1.0 / 3.0)
+        + arma::sign(tmp2m) % arma::pow(arma::abs(tmp2m), 1.0 / 3.0);
+
+    arma::mat sqr2t = arma::sqrt(2.0 * t);
+    arma::mat sqr2t_safe = sqr2t + (1.0 - fix_mat); // guard division
+
+    arma::mat inner = arma::clamp(2.0 * X_safe / sqr2t_safe - 2.0 * t,
+                                  0.0, arma::datum::inf);
+    arma::mat val = sqr2t + arma::sqrt(inner);
+    arma::mat out = arma::sign(X) % arma::pow(val, 3.0) / 8.0;
+
+    return out % fix_mat;
+
+    // arma::mat out(arma::size(X));
+    // for(arma::uword j = 0; j < X.n_cols; j++){
+    //     for(arma::uword i = 0; i < X.n_rows; i++){
+    //         double tmp1 = X(i,j);
+    //         double tmp2 = lam_mat(i,j);
+    //         out(i,j) = LpTwoThirds(tmp1, tmp2);
+    //     }
+    // }
+    // return out;
 }
 
 

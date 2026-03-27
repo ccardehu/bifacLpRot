@@ -94,7 +94,7 @@ bifactorL1 <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
     }
     if (ncores < 1L) stop("ncores must be >= 1")
 
-    # --- Single start (original behavior) ---
+    # --- Single start ---
     if (nstart == 1L) {
         result <- ALM_cpp(
             A = A,
