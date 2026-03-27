@@ -326,6 +326,7 @@ Rcpp::List ALM_cpp(arma::mat& A,
     int i = 0, j = 0;
 
     for (i = 1; i <= maxit_ou; ++i) {
+        if (i % 10 == 0) Rcpp::checkUserInterrupt();
         double tB = t;
         double tR = t;
         arma::mat Bo = B;
@@ -333,6 +334,7 @@ Rcpp::List ALM_cpp(arma::mat& A,
         arma::mat Phio = Ro * Ro.t();
 
         for (j = 1; j <= maxit_in; ++j) {
+            if (j % 10 == 0) Rcpp::checkUserInterrupt();
             arma::mat Bn = B;
             arma::mat Rn = R;
             double crit = 0.0;
