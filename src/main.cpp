@@ -65,17 +65,17 @@ arma::mat prox_LpOne(arma::mat X, arma::vec lambda) {
     return arma::sign(X) % arma::clamp(arma::abs(X) - lam_mat, 0.0, arma::datum::inf);
 }
 
-double LpOneHalf(double x, double lam){
-    double tau = 1.5 * std::pow(lam, 2.0/3.0);
-    if(std::abs(x) <= tau){
-        return 0.0;
-    }
-    double arg = -(3.0 * std::sqrt(3.0) / 4.0) * lam * std::pow(std::abs(x), -1.5);
-    if (arg < -1.0) arg = -1.0;
-    if (arg >  1.0) arg =  1.0;
-    double out = (2.0 / 3.0) * x * (1.0 + std::cos((2.0 / 3.0) * std::acos(arg)));
-    return out;
-}
+// double LpOneHalf(double x, double lam){
+//     double tau = 1.5 * std::pow(lam, 2.0/3.0);
+//     if(std::abs(x) <= tau){
+//         return 0.0;
+//     }
+//     double arg = -(3.0 * std::sqrt(3.0) / 4.0) * lam * std::pow(std::abs(x), -1.5);
+//     if (arg < -1.0) arg = -1.0;
+//     if (arg >  1.0) arg =  1.0;
+//     double out = (2.0 / 3.0) * x * (1.0 + std::cos((2.0 / 3.0) * std::acos(arg)));
+//     return out;
+// }
 
 arma::mat prox_LpOneHalf(arma::mat X, arma::vec lambda){
     arma::mat lam_mat = arma::reshape(lambda, X.n_rows, X.n_cols);
@@ -99,29 +99,29 @@ arma::mat prox_LpOneHalf(arma::mat X, arma::vec lambda){
     // return out;
 }
 
-double LpTwoThirds(double x, double lam){
-    double tau = 2.0 * std::pow(2.0/3.0 * lam, 0.75);
-    if(std::abs(x) <= tau){
-        return 0.0;
-    }
-    double x2 = std::pow(x,2.0);
-    double x4 = x2*x2;
-    double lam3 = std::pow(lam,3.0);
-
-    double tmp1 = x4/256.0 - 8.0/729.0*lam3;
-    if(tmp1 < 0.0) tmp1 = 0.0;  // numerical safety
-    tmp1 = std::sqrt(tmp1);
-    double t = std::cbrt(x2/16.0 + tmp1) + std::cbrt(x2/16.0 - tmp1);
-
-    double sqr2t = std::sqrt(2.0*t);
-    double inner = 2.0*std::abs(x)/sqr2t - 2.0*t;
-    if(inner < 0.0) inner = 0.0;  // numerical safety
-
-    double val = sqr2t + std::sqrt(inner);
-    double out = std::pow(val,3.0)/8.0;
-    if(x < 0.0) out = -out;
-    return out;
-}
+// double LpTwoThirds(double x, double lam){
+//     double tau = 2.0 * std::pow(2.0/3.0 * lam, 0.75);
+//     if(std::abs(x) <= tau){
+//         return 0.0;
+//     }
+//     double x2 = std::pow(x,2.0);
+//     double x4 = x2*x2;
+//     double lam3 = std::pow(lam,3.0);
+//
+//     double tmp1 = x4/256.0 - 8.0/729.0*lam3;
+//     if(tmp1 < 0.0) tmp1 = 0.0;  // numerical safety
+//     tmp1 = std::sqrt(tmp1);
+//     double t = std::cbrt(x2/16.0 + tmp1) + std::cbrt(x2/16.0 - tmp1);
+//
+//     double sqr2t = std::sqrt(2.0*t);
+//     double inner = 2.0*std::abs(x)/sqr2t - 2.0*t;
+//     if(inner < 0.0) inner = 0.0;  // numerical safety
+//
+//     double val = sqr2t + std::sqrt(inner);
+//     double out = std::pow(val,3.0)/8.0;
+//     if(x < 0.0) out = -out;
+//     return out;
+// }
 
 arma::mat prox_LpTwoThirds(arma::mat X, arma::vec lambda){
     arma::mat lam_mat = arma::reshape(lambda, X.n_rows, X.n_cols);
