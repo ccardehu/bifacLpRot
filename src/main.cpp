@@ -24,7 +24,9 @@ double obj2(arma::mat& B, arma::mat& R, arma::mat& L,
 
 arma::mat gradB(arma::mat& B, arma::mat& R, arma::mat& L,
                 const arma::mat& AAt, double rho){
-
+    if (arma::abs(B).max() > 1e2) {
+        Rcpp::stop("B update diverged. Reduce penalty (rho) or step size (t)");
+    }
     arma::mat Phi = R*R.t();
     arma::mat BP = B*Phi;
     arma::mat dB = -2.0 * rho * (AAt - BP*B.t())*BP - 2.0*L*BP;
@@ -44,7 +46,11 @@ arma::vec hessB(arma::mat& B, arma::mat& R, arma::mat& L,
     arma::vec d2 = arma::diagvec(BP.t() * BP);
     arma::vec M2 = 2.0 * rho * arma::repelem(d2, B.n_rows, 1);
     arma::vec M3 = 2.0 * rho * arma::diagvec(arma::kron(BP.t(), BP) * Kpq);
-    return (M1 + M2 + M3);
+    arma::vec dB2 = M1 + M2 + M3;
+    if(!dB2.is_finite()){
+        Rcpp::stop("Non-finite gradient: dB");
+    }
+    return (dB2);
 }
 
 arma::mat gradR(arma::mat& B, arma::mat& R, arma::mat& L,
@@ -270,13 +276,30 @@ arma::vec freeR(arma::mat& R) {
 
 double bt4B(arma::mat& B, arma::mat& R, arma::mat& L,
             const arma::mat& AAt, double rho,
-            arma::mat& grad, arma::vec& ihess, double t,
+            arma::mat& grad, double t,
             const int maxit_bt = 20, const double beta = 0.5, const double c = 1e-4) {
+
+    double fx = obj2(B, R, L, AAt, rho);
+    double grad_sqnorm = arma::accu(arma::square(grad));
+    for (int i = 0; i < maxit_bt; ++i) {
+        arma::mat Bnew = B - t * grad;
+        double fnew = obj2(Bnew, R, L, AAt, rho);
+        if (fnew <= fx - c * t * grad_sqnorm) {
+            return t;
+        }
+        t *= beta;
+    }
+    return t;
+}
+
+double bt4Bh(arma::mat& B, arma::mat& R, arma::mat& L,
+             const arma::mat& AAt, double rho,
+             arma::mat& grad, arma::vec& ihess, double t,
+             const int maxit_bt = 20, const double beta = 0.5, const double c = 1e-4) {
 
     double fx = obj2(B, R, L, AAt, rho);
     arma::mat iHgrad = arma::reshape(ihess % arma::vectorise(grad), B.n_rows, B.n_cols);
     double iHgrad_sqnorm = arma::accu(arma::square(iHgrad));
-
     for (int i = 0; i < maxit_bt; ++i) {
         arma::mat Bnew = B - t * iHgrad;
         double fnew = obj2(Bnew, R, L, AAt, rho);
@@ -325,15 +348,15 @@ Rcpp::List ALM_cpp(arma::mat& A,
                    Rcpp::Nullable<arma::mat> Bstart_ = R_NilValue,
                    Rcpp::Nullable<arma::mat> Phi_ = R_NilValue,
                    double rho = 1.0, double t = 1e-3,
-                   int maxit_ou = 5000, int maxit_in = 300, int hesit = 50,
+                   int maxit_ou = 5000, int maxit_in = 300, //int hesit = 50,
                    bool orthogonal = false,
                    double tol1 = 1e-6, double tol2 = 1e-6, double tol3 = 1e-4,
                    bool verbose = true, int v_every = 10,
                    double Lmax = 20.0, double c1 = 1.05, double c2 = 0.25,
                    double p = 1) {
 
-    wall_clock timer;
-    timer.tic();
+    // wall_clock timer;
+    // timer.tic();
 
     // Input validation
     if (c1 <= 1.0) Rcpp::stop("Fix c1 argument, must be c1 > 1");
@@ -354,7 +377,7 @@ Rcpp::List ALM_cpp(arma::mat& A,
     int NR = orthogonal ? 0 : static_cast<int>(freeR(R).n_elem) - 1;
     int NP = static_cast<int>(B.n_elem) + NR;
 
-    const arma::mat Kpq = commutation_matrix(B.n_rows, B.n_cols);
+    // const arma::mat Kpq = commutation_matrix(B.n_rows, B.n_cols);
     const arma::mat AAt = A * Phi0 * A.t();
 
     double outn = Qp(B,p);
@@ -367,31 +390,27 @@ Rcpp::List ALM_cpp(arma::mat& A,
 
     // Protect against floating point in p
     std::function<arma::mat(arma::mat, arma::vec)> ProxB;
-    bool closedp = true;
-    if (std::abs(p - 1.0) < tol2) {
+    if (std::abs(p - 1.0) < 1e-10) {
         ProxB = prox_LpOne;
-    } else if (std::abs(p - 0.5) < tol2) {
+    } else if (std::abs(p - 0.5) < 1e-10) {
         ProxB = prox_LpOneHalf;
-    } else if (std::abs(p - 2.0/3.0) < tol2) {
+    } else if (std::abs(p - 2.0/3.0) < 1e-10) {
         ProxB = prox_LpTwoThirds;
     } else {
-        ProxB = [p, tol2](arma::mat X, arma::vec lambda) {
-            return prox_LpGeneral(X, lambda, p, tol2);
+        ProxB = [p](arma::mat X, arma::vec lambda) {
+            return prox_LpGeneral(X, lambda, p, 1e-6);
         };
-        closedp = false;
     }
-
-    // Protect against using Hessian when general p
-    if (!closedp) hesit = maxit_ou + 100;
 
     // Tolerances:
     const double eps1 = tol1*tol1;
     const double eps2 = tol2*tol2;
+    bool converged = false;
 
     for (i = 1; i <= maxit_ou; ++i) {
         if (i % 10 == 0) Rcpp::checkUserInterrupt();
-        double tB = t;
-        double tR = orthogonal ? 0.0 : t/NR;
+        double tB = t ;
+        double tR = t ;
         arma::mat Bo = B;
         arma::mat Ro = R;
         arma::mat Phio = Ro * Ro.t();
@@ -403,18 +422,18 @@ Rcpp::List ALM_cpp(arma::mat& A,
             double critR0 = 0.0;
 
             arma::mat gradb = gradB(B, R, L, AAt, rho);
-            arma::vec ihess;
-            arma::mat ihgb;
+            arma::vec ihess = arma::ones<arma::vec>(B.n_elem);
+            arma::mat ihgb(arma::size(B));
 
-            if (i > hesit) {
-                ihess = 1.0 / hessB(B, R, L, AAt, Kpq, rho);
-                tB = bt4B(Bn, Rn, L, AAt, rho, gradb, ihess, tB, maxit_in, 0.5, tol2);
-                ihgb = arma::reshape(ihess % arma::vectorise(gradb),
-                                     B.n_rows, B.n_cols) * tB;
-            } else {
-                ihess = arma::ones<arma::vec>(B.n_elem);
-                ihgb = gradb * tB;
-            }
+            // if (i > hesit) {
+            //     ihess /= hessB(B, R, L, AAt, Kpq, rho);
+            //     tB = bt4Bh(Bn, Rn, L, AAt, rho, gradb, ihess, tB, maxit_in, 0.5, tol2);
+            //     ihgb = arma::reshape(ihess % arma::vectorise(gradb),
+            //                          B.n_rows, B.n_cols) * tB;
+            // } else {
+            tB = bt4B(Bn, Rn, L, AAt, rho, gradb, tB, maxit_in, 0.5, tol2);
+            ihgb = gradb * tB;
+            // }
 
             // Update first column (no L1 penalty)
             Bn.col(0) = B.col(0) - ihgb.col(0);
@@ -430,11 +449,10 @@ Rcpp::List ALM_cpp(arma::mat& A,
 
             if (!orthogonal) {
                 arma::mat gradr = gradR(B, R, L, AAt, rho);
-                if (i > hesit) {
-                    tR = bt4R(Bn, Rn, L, AAt, rho, gradr, tR, maxit_in, 0.5, tol2);
-                }
-                arma::mat gR = gradr * tR ;
-                Rn = R - gR;
+                // if (i > hesit) {
+                tR = bt4R(Bn, Rn, L, AAt, rho, gradr, tR, maxit_in, 0.5, tol2);
+                // }
+                Rn = R - gradr * tR;
                 ProxL(Rn);
 
                 if (!Rn.is_finite()) {
@@ -469,7 +487,10 @@ Rcpp::List ALM_cpp(arma::mat& A,
         double resid_new = arma::norm(AAt - B * Phi * B.t(), "fro");
         double resid_old = arma::norm(AAt - Bo * Phio * Bo.t(), "fro");
 
-        if ((stopC1 < eps1) && (resid_new < tol3 * arma::norm(AAt, "fro")/NP )) break;
+        if ((stopC1 < eps1) && (resid_new < tol3 * arma::norm(AAt, "fro"))){
+            converged = true;
+            break;
+        }
         // if ((stopC1 < eps1)) break;
 
         // Adaptive rho update
@@ -486,7 +507,7 @@ Rcpp::List ALM_cpp(arma::mat& A,
                     << std::setprecision(3) << outn << std::endl;
     }
 
-    double time = timer.toc();
+    // double time = timer.toc();
 
     return Rcpp::List::create(
         Rcpp::Named("B") = B,
@@ -495,8 +516,8 @@ Rcpp::List ALM_cpp(arma::mat& A,
         Rcpp::Named("cons.end") = arma::norm(AAt - B * Phi * B.t(), "fro"),
         Rcpp::Named("rho.end") = rho,
         Rcpp::Named("outer.iter.end") = i,
-        Rcpp::Named("conv") = (i <= maxit_ou),
-        Rcpp::Named("eps1") = stopC1,
-        Rcpp::Named("time") = time
+        Rcpp::Named("conv") = converged,
+        Rcpp::Named("eps1") = stopC1//,
+        // Rcpp::Named("time") = time
     );
 }

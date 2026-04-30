@@ -13,7 +13,6 @@ bifactorLp(
   t = 0.001,
   maxit.ou = 5000,
   maxit.in = 300,
-  hesit = 50,
   orthogonal = FALSE,
   tol1 = 1e-06,
   tol2 = 1e-06,
@@ -47,8 +46,6 @@ Ignored when \code{nstart > 1}.}
 
 \item{maxit.in}{Maximum inner iterations. Default 300.}
 
-\item{hesit}{Iteration number to add Hessian information. Default 50.}
-
 \item{orthogonal}{Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.}
 
 \item{tol1}{Convergence tolerance for parameter changes. Default 1e-6.}
@@ -78,6 +75,8 @@ and the solution with the smallest objective value is returned.}
 \item{ncores}{Number of parallel workers. Default 1 (sequential).
 Requires the \code{future} and \code{future.apply} packages for \code{ncores > 1}.
 If NULL, defaults to \code{ncores = future::availableCores() - 2}.}
+
+\item{hesit}{Iteration number to add Hessian information. Default 50.}
 }
 \value{
 A list containing:

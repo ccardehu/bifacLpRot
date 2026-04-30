@@ -67,7 +67,8 @@
 #' @useDynLib bifacLpRot, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 bifactorLp <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1e-3,
-                maxit.ou = 5000, maxit.in = 300, hesit = 50, orthogonal = FALSE,
+                maxit.ou = 5000, maxit.in = 300, #hesit = 50,
+                orthogonal = FALSE,
                 tol1 = 1e-6, tol2 = 1e-6, tol3 = 1e-4, verbose = TRUE, v.every = 10L,
                 Lmax = 20, c1 = 1.05, c2 = 0.25, p = 1,
                 nstart = 1L, seed = NULL, ncores = 1) {
@@ -80,7 +81,7 @@ bifactorLp <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
 
     maxit.ou = as.integer(maxit.ou)
     maxit.in = as.integer(maxit.in)
-    hesit = as.integer(hesit)
+    # hesit = as.integer(hesit)
     v.every = as.integer(v.every)
     nstart = as.integer(nstart)
     if (nstart < 1L) stop("nstart must be >= 1")
@@ -97,6 +98,8 @@ bifactorLp <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
     }
     if (ncores < 1L) stop("ncores must be >= 1")
 
+    tic = Sys.time()
+
     # --- Single start ---
     if (nstart == 1L) {
         result <- ALM_cpp(
@@ -108,7 +111,7 @@ bifactorLp <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
             t = t,
             maxit_ou = maxit.ou,
             maxit_in = maxit.in,
-            hesit = hesit,
+            # hesit = hesit,
             orthogonal = orthogonal,
             tol1 = tol1,
             tol2 = tol2,
@@ -164,7 +167,7 @@ bifactorLp <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
                 t = t,
                 maxit_ou = maxit.ou,
                 maxit_in = maxit.in,
-                hesit = hesit,
+                # hesit = hesit,
                 orthogonal = orthogonal,
                 tol1 = tol1,
                 tol2 = tol2,
@@ -206,18 +209,20 @@ bifactorLp <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1
         stop("All random starts failed.")
     }
 
-    # Select best result (lowest objective; Qp)
-    obj_vals = vapply(results, function(r) r$obj.end, numeric(1))
+    # Select best result (lowest objective; Qp + constraint violation)
+    obj_vals = vapply(results, function(r) r$obj.end + r$cons.end, numeric(1))
     best_idx = which.min(obj_vals)
     best = results[[best_idx]]
 
     if (verbose) {
-        message(sprintf("Random starts: %d | Best obj: %.3f (start %d) | Range: [%.3f, %.3f]",
+        message(sprintf("Random starts: %d | Min. Qp(B) + h(B,Phi): %.3f (start %d) | Range: [%.3f, %.3f]",
                         nstart, obj_vals[best_idx], best_idx,
                         min(obj_vals), max(obj_vals)))
     }
 
+    toc = Sys.time()
     best$nstart = nstart
     best$all.obj = obj_vals
+    best$time = difftime(toc,tic,units = "secs")
     return(best)
 }
