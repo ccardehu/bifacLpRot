@@ -1,6 +1,6 @@
 #' @keywords internal
 "_PACKAGE"
 
-#' @useDynLib bifacL1rot, .registration = TRUE
+#' @useDynLib bifacLpRot, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 NULL

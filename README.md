@@ -1,18 +1,18 @@
 
-# bifacL1rot
+# bifacLpRot
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-L1 rotation of Exploratory Generalized Bi-Factor Models
+$L_p$ Rotation of Exploratory Generalized Bi-Factor Models
 
 ## Installation
 
-You can install the development version of `bifacL1rot` from [GitHub](https://github.com/) with:
+You can install the development version of `bifacLpRot` from [GitHub](https://github.com/) with:
 
 ```r
 # install.packages("devtools")
-devtools::install_github("ccardehu/bifacL1rot")
+devtools::install_github("ccardehu/bifacLpRot")
 ```
 
 ## Example
@@ -30,7 +30,7 @@ A[,4] = runif(20, 0.5, 1) * rbinom(20, 1, 0.25)
 Ah =  array(rnorm(length(A), sd = .1), dim = dim(A))
 Tr = eigen(t(Ah) %*% Ah)$vectors
 Ah = (A)%*%(Tr)
-res = bifacL1rot::bifactorL1(Ah)
+res = bifacLpRot::bifactorLp(Ah)
 Arot = res$B
 Phi = res$Phi
 ```

@@ -131,11 +131,11 @@ arma::mat prox_LpTwoThirds(arma::mat X, arma::vec lambda){
     arma::mat tmp1 = arma::clamp(X4 / 256.0 - 8.0 / 729.0 * lam_mat3, 0.0, arma::datum::inf);
     tmp1 = arma::sqrt(tmp1);
 
-    // but arma::pow() fails for negative bases with fractional exponents,
+    // arma::pow() fails for negative bases with fractional exponents,
     // so split into sign and magnitude
     arma::mat tmp2p = X2 / 16.0 + tmp1;
     arma::mat tmp2m = X2 / 16.0 - tmp1;
-    arma::mat t = arma::sign(tmp2p)  % arma::pow(arma::abs(tmp2p),  1.0 / 3.0)
+    arma::mat t = arma::sign(tmp2p) % arma::pow(arma::abs(tmp2p), 1.0 / 3.0)
         + arma::sign(tmp2m) % arma::pow(arma::abs(tmp2m), 1.0 / 3.0);
 
     arma::mat sqr2t = arma::sqrt(2.0 * t);
@@ -161,9 +161,9 @@ arma::mat prox_LpGeneral(arma::mat X, arma::vec lambda, double p, double eps = 1
     // Mask: 1 where |x| > threshold, 0 otherwise (returns 0)
     arma::mat fix_mat = arma::conv_to<arma::mat>::from(abs_X > tau_mat);
 
-    // --- Initialise bisection interval [a, b] ---
-    // a = (C*p*(1-p))^{1/(2-p)}  if |x| < C + 1  (Lemma 3.1)
-    //     |x| - C                if |x| >= C + 1  (Lemma 3.2)
+    // Initialise bisection interval [a, b]
+    // a = (C*p*(1-p))^{1/(2-p)}  if |x| < C + 1
+    //     |x| - C                if |x| >= C + 1
     arma::mat a_small = arma::pow(lam_mat * p * (1.0 - p), exp_inv);
     arma::mat a_large = abs_X - lam_mat;
     arma::mat use_large = arma::conv_to<arma::mat>::from(abs_X >= lam_mat + 1.0);
@@ -181,7 +181,7 @@ arma::mat prox_LpGeneral(arma::mat X, arma::vec lambda, double p, double eps = 1
     double max_lam = lam_mat.max();
     int n_iter = std::max(1, (int)std::ceil(std::log2((max_lam + 1.0) / eps)));
 
-    // --- Bisection loop (all elements simultaneously) ---
+    // Bisection loop (all elements simultaneously)
     arma::mat c(arma::size(X));
     for (int iter = 0; iter < n_iter; iter++) {
         c = (a + b) / 2.0;
@@ -194,13 +194,14 @@ arma::mat prox_LpGeneral(arma::mat X, arma::vec lambda, double p, double eps = 1
         b = move_left % c + (1.0 - move_left) % b;
         a = (1.0 - move_left) % c + move_left % a;
         Ja = (1.0 - move_left) % Jc + move_left % Ja;
+        arma::mat check = (b - a) / 2.0 ;
+        if(check.max() < eps) break;
     }
     c = (a + b) / 2.0;
 
     // Restore sign and zero out sub-threshold entries
     return arma::sign(X) % c % fix_mat;
 }
-
 
 void ProxL(arma::mat& R) {
     arma::vec row_norms = arma::sqrt(arma::sum(arma::square(R), 1));
@@ -215,7 +216,6 @@ void fixB_internal(arma::mat& B,
         signs(i) = (B(max_idx, i) >= 0) ? 1.0 : -1.0;
         B.col(i) *= signs(i);
     }
-
     for (arma::uword i = 0; i < R.n_cols; ++i) {
         for (arma::uword j = i; j < R.n_rows; ++j) {
             R(j, i) *= signs(i) * signs(j);
@@ -232,8 +232,8 @@ void fixB_internal(arma::mat& B,
 //' @param R_ Optional correlation matrix (modified in place). Defaults to identity.
 //' @export
 // [[Rcpp::export]]
- void fixB(arma::mat& B,
-           Rcpp::Nullable<Rcpp::NumericMatrix> R_) {
+void fixB(arma::mat& B,
+          Rcpp::Nullable<Rcpp::NumericMatrix> R_) {
 
      arma::vec signs(B.n_cols);
      for (arma::uword i = 0; i < B.n_cols; ++i) {
@@ -241,7 +241,6 @@ void fixB_internal(arma::mat& B,
          signs(i) = (B(max_idx, i) >= 0) ? 1.0 : -1.0;
          B.col(i) *= signs(i);
      }
-
      if(R_.isNotNull()) {
          Rcpp::NumericMatrix Rmat(R_.get());
          arma::mat R(Rmat.begin(), Rmat.nrow(), Rmat.ncol(), false, true);

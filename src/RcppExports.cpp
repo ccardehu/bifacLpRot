@@ -13,7 +13,7 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 
 // fixB
 void fixB(arma::mat& B, Rcpp::Nullable<Rcpp::NumericMatrix> R_);
-RcppExport SEXP _bifacL1rot_fixB(SEXP BSEXP, SEXP R_SEXP) {
+RcppExport SEXP _bifacLpRot_fixB(SEXP BSEXP, SEXP R_SEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat& >::type B(BSEXP);
@@ -24,7 +24,7 @@ END_RCPP
 }
 // freeR
 arma::vec freeR(arma::mat& R);
-RcppExport SEXP _bifacL1rot_freeR(SEXP RSEXP) {
+RcppExport SEXP _bifacLpRot_freeR(SEXP RSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -35,7 +35,7 @@ END_RCPP
 }
 // commutation_matrix
 arma::mat commutation_matrix(int p, int q);
-RcppExport SEXP _bifacL1rot_commutation_matrix(SEXP pSEXP, SEXP qSEXP) {
+RcppExport SEXP _bifacLpRot_commutation_matrix(SEXP pSEXP, SEXP qSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -47,7 +47,7 @@ END_RCPP
 }
 // ALM_cpp
 Rcpp::List ALM_cpp(arma::mat& A, Rcpp::Nullable<arma::mat> Phi0_, Rcpp::Nullable<arma::mat> Bstart_, Rcpp::Nullable<arma::mat> Phi_, double rho, double t, int maxit_ou, int maxit_in, int hesit, bool orthogonal, double tol1, double tol2, double tol3, bool verbose, int v_every, double Lmax, double c1, double c2, double p);
-RcppExport SEXP _bifacL1rot_ALM_cpp(SEXP ASEXP, SEXP Phi0_SEXP, SEXP Bstart_SEXP, SEXP Phi_SEXP, SEXP rhoSEXP, SEXP tSEXP, SEXP maxit_ouSEXP, SEXP maxit_inSEXP, SEXP hesitSEXP, SEXP orthogonalSEXP, SEXP tol1SEXP, SEXP tol2SEXP, SEXP tol3SEXP, SEXP verboseSEXP, SEXP v_everySEXP, SEXP LmaxSEXP, SEXP c1SEXP, SEXP c2SEXP, SEXP pSEXP) {
+RcppExport SEXP _bifacLpRot_ALM_cpp(SEXP ASEXP, SEXP Phi0_SEXP, SEXP Bstart_SEXP, SEXP Phi_SEXP, SEXP rhoSEXP, SEXP tSEXP, SEXP maxit_ouSEXP, SEXP maxit_inSEXP, SEXP hesitSEXP, SEXP orthogonalSEXP, SEXP tol1SEXP, SEXP tol2SEXP, SEXP tol3SEXP, SEXP verboseSEXP, SEXP v_everySEXP, SEXP LmaxSEXP, SEXP c1SEXP, SEXP c2SEXP, SEXP pSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -76,14 +76,14 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_bifacL1rot_fixB", (DL_FUNC) &_bifacL1rot_fixB, 2},
-    {"_bifacL1rot_freeR", (DL_FUNC) &_bifacL1rot_freeR, 1},
-    {"_bifacL1rot_commutation_matrix", (DL_FUNC) &_bifacL1rot_commutation_matrix, 2},
-    {"_bifacL1rot_ALM_cpp", (DL_FUNC) &_bifacL1rot_ALM_cpp, 19},
+    {"_bifacLpRot_fixB", (DL_FUNC) &_bifacLpRot_fixB, 2},
+    {"_bifacLpRot_freeR", (DL_FUNC) &_bifacLpRot_freeR, 1},
+    {"_bifacLpRot_commutation_matrix", (DL_FUNC) &_bifacLpRot_commutation_matrix, 2},
+    {"_bifacLpRot_ALM_cpp", (DL_FUNC) &_bifacLpRot_ALM_cpp, 19},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_bifacL1rot(DllInfo *dll) {
+RcppExport void R_init_bifacLpRot(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

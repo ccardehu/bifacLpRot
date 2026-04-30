@@ -1,12 +1,12 @@
-Package: bifacL1rot
-Title: L1 rotation for Exploratory Generalized Bi-factor Analysis
+Package: bifacLpRot
+Title: Lp Rotation for Exploratory Generalized Bi-factor Analysis
 Version: 0.1.0
 Authors@R: c(
     person("Camilo A.", "Cárdenas-Hurtado", email = "c.a.cardenas-hurtado@lse.ac.uk", role = c("aut", "cre"),
     comment = c(ORCID = "0009-0003-1073-0912")),
     person("Tamara Gaia", "Vasiljev", email = "t.vasiljev@campus.unimib.it", role = c("aut", "ctb")))
 Description: Implements a factor loading rotation for sparse bi-factor models using an augmented Lagrangian 
-    optimization approach with L1 penalties.
+    optimization with proximal updates of Lp (0<p<=1) penalties.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -16,8 +16,8 @@ LinkingTo:
     RcppArmadillo
 Imports: 
     Rcpp
-URL: https://github.com/ccardehu/bifacL1rot
-BugReports: https://github.com/ccardehu/bifacL1rot/issues
+URL: https://github.com/ccardehu/bifacLpRot
+BugReports: https://github.com/ccardehu/bifacLpRot/issues
 Suggests: 
     future,
     future.apply

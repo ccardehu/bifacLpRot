@@ -57,16 +57,16 @@
 #' Ah = (A)%*%(Tr)
 #'
 #' # Single start
-#' res <- bifacL1rot::bifactorL1(Ah)
+#' res <- bifacLpRot::bifactorLp(Ah)
 #'
 #' # Multiple random starts in parallel
-#' res <- bifacL1rot::bifactorL1(Ah, nstart = 10, ncores = 4, seed = 1234)
+#' res <- bifacLpRot::bifactorLp(Ah, nstart = 10, ncores = 4, seed = 1234)
 #' }
 #'
 #' @export
-#' @useDynLib bifacL1rot, .registration = TRUE
+#' @useDynLib bifacLpRot, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
-bifactorL1 <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1e-3,
+bifactorLp <- function(A, Phi0 = NULL, Bstart = NULL, Phi = NULL, rho = 1, t = 1e-3,
                 maxit.ou = 5000, maxit.in = 300, hesit = 50, orthogonal = FALSE,
                 tol1 = 1e-6, tol2 = 1e-6, tol3 = 1e-4, verbose = TRUE, v.every = 10L,
                 Lmax = 20, c1 = 1.05, c2 = 0.25, p = 1,
