@@ -20,7 +20,7 @@
 #' @param Lmax Clipping bound for Lagrange multipliers. Default 20.
 #' @param c1 Multiplicative factor for rho increase (must be > 1). Default 1.1.
 #' @param c2 Threshold for rho update (must be in (0,1)). Default 0.25.
-#' @param p Exponent in Qp (must be in [0,1]). Closed form solutions for 0, 1/2, 2/3, 1. Default 1.
+#' @param p Exponent in Qp (must be in (0,1]). Closed form solutions for 1/2, 2/3, 1. Default 1.
 #' @param nstart Number of random starts. Default 1 (no random restarts).
 #'   When \code{nstart > 1}, each start uses a random orthogonal rotation of \code{A}
 #'   and the solution with the smallest objective value is returned.
