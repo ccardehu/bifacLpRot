@@ -27,7 +27,8 @@ bifactorLp(
   nstart = 1L,
   ostart = TRUE,
   seed = NULL,
-  ncores = 1
+  ncores = 1,
+  refine = T
 )
 }
 \arguments{
@@ -54,9 +55,9 @@ Ignored when \code{nstart > 1}.}
 
 \item{tol1}{Convergence tolerance for successive parameter change (outer loop). Default 1e-6.}
 
-\item{tol2}{Convergence tolerance for successive parameter change (inner loop). Default 1e-4.}
+\item{tol2}{Convergence tolerance for constraint violation check. Default 1e-3.}
 
-\item{tol3}{Convergence tolerance for constraint violation check. Default 1e-3.}
+\item{tol3}{Convergence tolerance for successive parameter change (inner loop). Default 1e-3.}
 
 \item{verbose}{Logical; print progress. Default TRUE.}
 
@@ -106,10 +107,10 @@ Lp rotation for Generalized Bi-factor Models
 \dontrun{
 set.seed(1234)
 A <- matrix(0, 20, 4) # A 20 x 4 Factor loading matrix
-A[,1] = runif(20, 0, 2) # Bi-factor structure, first factor
-A[,2] = runif(20, 0, 2) * rbinom(20, 1, 0.25)
-A[,3] = runif(20, 0, 2) * rbinom(20, 1, 0.25)
-A[,4] = runif(20, 0, 2) * rbinom(20, 1, 0.25)
+A[,1] = runif(20, 0, 1) # Bi-factor structure, first factor
+A[,2] = runif(20, 0, 1) * rbinom(20, 1, 1/3)
+A[,3] = runif(20, 0, 1) * rbinom(20, 1, 1/3)
+A[,4] = runif(20, 0, 1) * rbinom(20, 1, 1/3)
 
 # Create orthogonal bi-factor rotation matrix (via random matrix):
 Tr = qr.Q(qr(matrix(rnorm((ncol(A)-1) * (ncol(A)-1)), ncol(A)-1, ncol(A)-1)))

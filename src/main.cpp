@@ -70,6 +70,13 @@ arma::mat gradR(arma::mat& B, arma::mat& R, arma::mat& L,
     return (dR);
 }
 
+arma::mat prox_LpZero(arma::mat X, arma::vec lambda) {
+    arma::mat lam_mat = arma::reshape(lambda, X.n_rows, X.n_cols);
+    arma::mat tau_mat = arma::square(2.0*lam_mat);
+    arma::mat fix_mat = arma::conv_to<arma::mat>::from(arma::abs(X) > tau_mat);
+    return X % fix_mat;
+}
+
 arma::mat prox_LpOne(arma::mat X, arma::vec lambda) {
     arma::mat lam_mat = arma::reshape(lambda, X.n_rows, X.n_cols);
     return arma::sign(X) % arma::clamp(arma::abs(X) - lam_mat, 0.0, arma::datum::inf);
@@ -348,7 +355,7 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
     // Input validation
     if (c1 <= 1.0) Rcpp::stop("Fix c1 argument, must be c1 > 1");
     if (c2 <= 0.0 || c2 >= 1.0) Rcpp::stop("Fix c2 argument, must be 0 < c2 < 1");
-    if (p <= 0.0 || p > 1.0) Rcpp::stop("Fix p argument, must be 0 < p <= 1");
+    if (p < 0.0 || p > 1.0) Rcpp::stop("Fix p argument, must be 0 < p <= 1");
 
     // Initialization of B and Phi
     if(A0_.isNull()) Rcpp::stop("Initial matrix A0 is NULL");
@@ -382,7 +389,9 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
 
     // Protect against floating point in p
     std::function<arma::mat(arma::mat, arma::vec)> ProxB;
-    if (std::abs(p - 1.0) < 1e-10) {
+    if (std::abs(p) < 1e-10) {
+        ProxB = prox_LpZero;
+    } else if (std::abs(p - 1.0) < 1e-10) {
         ProxB = prox_LpOne;
     } else if (std::abs(p - 0.5) < 1e-10) {
         ProxB = prox_LpOneHalf;
