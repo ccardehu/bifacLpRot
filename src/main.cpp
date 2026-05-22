@@ -438,7 +438,7 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
             double stopC0 = (arma::accu(arma::square(B - Bn)) + critR0) / NP;
             B = Bn;
             R = Rn;
-            if (std::sqrt(stopC0) < tol2) break;
+            if (std::sqrt(stopC0) < tol3) break;
         }
         Phi = R * R.t();
 
@@ -457,7 +457,7 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
         stopC1 = (arma::accu(arma::square(B - Bo)) + critR1) / NP;
         double resid_new = arma::norm(AAt - B * Phi * B.t(), "fro");
 
-        if ((std::sqrt(stopC1) < tol1) && (resid_new < tol3)){ //   && (unitc_new < tol3)
+        if ((std::sqrt(stopC1) < tol1) && (resid_new < tol2)){ //   && (unitc_new < tol3)
             converged = true;
             break;
         }

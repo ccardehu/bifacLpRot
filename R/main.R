@@ -13,8 +13,8 @@
 # @param hesit Iteration number to add Hessian information. Default 50.
 #' @param orthogonal Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.
 #' @param tol1 Convergence tolerance for successive parameter change (outer loop). Default 1e-6.
-#' @param tol2 Convergence tolerance for successive parameter change (inner loop). Default 1e-4.
-#' @param tol3 Convergence tolerance for constraint violation check. Default 1e-3.
+#' @param tol2 Convergence tolerance for constraint violation check. Default 1e-3.
+#' @param tol3 Convergence tolerance for successive parameter change (inner loop). Default 1e-3.
 #' @param verbose Logical; print progress. Default TRUE.
 #' @param v_every Print frequency (every v_every outer iterations). Default 10.
 #' @param Lmax Clipping bound for Lagrange multipliers. Default 20.
@@ -77,7 +77,8 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                        tol1 = 1e-6, tol2 = 1e-3, tol3 = 1e-3,
                        verbose = TRUE, v_every = 10L,
                        Lmax = 20, c1 = 1.1, c2 = 0.25, p = 1,
-                       nstart = 1L, ostart = TRUE, seed = NULL, ncores = 1) {
+                       nstart = 1L, ostart = TRUE, seed = NULL, ncores = 1,
+                       refine = T) {
 
     # Input validation
     if(is.null(A)) stop("Factor loading matrix A must be included.")
@@ -244,10 +245,10 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                         nstart, obj_vals[best_idx], con_vals[best_idx], best_idx, min(obj_vals), max(obj_vals)))
     }
 
-    if (!best$converged){
+    if (!best$converged & refine){
         ref = ALM_cpp(
-            A0_ = best$B,
-            Phi0_ = best$Phi,
+            A0_ = A,
+            Phi0_ = Phi,
             Bstart_ = best$B,
             Phistart_ = best$Phi,
             rho = rho,
