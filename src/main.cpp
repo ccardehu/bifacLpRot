@@ -485,7 +485,7 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
     return Rcpp::List::create(
         Rcpp::Named("B") = B,
         Rcpp::Named("Phi") = Phi,
-        Rcpp::Named("R") = R,
+        // Rcpp::Named("R") = R,
         Rcpp::Named("obj.end") = outn,
         Rcpp::Named("cons.end") = arma::norm(AAt - B*Phi*B.t(), "fro"),
         Rcpp::Named("tol.end") = std::sqrt(stopC1),

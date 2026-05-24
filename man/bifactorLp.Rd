@@ -96,8 +96,9 @@ A list containing:
 \item \code{converged}: Logical; TRUE if converged before maxit_ou
 \item \code{time}: Wall clock computation time (in seconds)
 \item \code{nstart}: Number of random starts used
-\item \code{all.obj}: Vector of objective values Qp(B) from all starts (only when \code{nstart > 1})
+\item \code{all.obje}: Vector of objective values Qp(B) from all starts (only when \code{nstart > 1})
 \item \code{all.cons}: Vector of constraint values h(B,Phi) from all starts (only when \code{nstart > 1})
+\item \code{all.conv}: Vector of boolean for convergence of all starts (only when \code{nstart > 1})
 }
 }
 \description{

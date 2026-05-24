@@ -42,8 +42,9 @@
 #'   \item \code{converged}: Logical; TRUE if converged before maxit_ou
 #'   \item \code{time}: Wall clock computation time (in seconds)
 #'   \item \code{nstart}: Number of random starts used
-#'   \item \code{all.obj}: Vector of objective values Qp(B) from all starts (only when \code{nstart > 1})
+#'   \item \code{all.obje}: Vector of objective values Qp(B) from all starts (only when \code{nstart > 1})
 #'   \item \code{all.cons}: Vector of constraint values h(B,Phi) from all starts (only when \code{nstart > 1})
+#'   \item \code{all.conv}: Vector of boolean for convergence of all starts (only when \code{nstart > 1})
 #' }
 #'
 #' @examples
@@ -237,6 +238,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     # Select best result (lowest objective; Qp + constraint violation)
     obj_vals = vapply(results, function(r) r$obj.end, numeric(1))
     con_vals = vapply(results, function(r) r$cons.end, numeric(1))
+    conv_all = vapply(results, function(r) r$converged, numeric(1))
     best_idx = which.min(obj_vals)
     best = results[[best_idx]]
 
@@ -270,8 +272,9 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
         )
         ref$nstart = nstart + 1L
         toc = Sys.time()
-        ref$all.obj = c(obj_vals, ref$obj.end)
-        ref$all.con = c(con_vals, ref$cons.end)
+        ref$all.obje = c(obj_vals, ref$obj.end)
+        ref$all.cons = c(con_vals, ref$cons.end)
+        ref$all.conv = c(conv_all, ref$converged)
         ref$time = difftime(toc,tic,units = "secs")
         if(verbose) {
             message(sprintf("Refined from best solution: Qp(B): %.3f; h(B,Phi): %.3f",
@@ -282,8 +285,9 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 
     toc = Sys.time()
     best$nstart = nstart
-    best$all.obj = obj_vals
-    best$all.con = con_vals
+    best$all.obje = obj_vals
+    best$all.cons = con_vals
+    best$all.conv = conv_all
     best$time = difftime(toc,tic,units = "secs")
     return(best)
 }
