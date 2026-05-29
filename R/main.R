@@ -17,8 +17,8 @@
 #' @param tol3 Convergence tolerance for successive parameter change (inner loop). Default 1e-3.
 #' @param verbose Logical; print progress. Default TRUE.
 #' @param v_every Print frequency (every v_every outer iterations). Default 10.
-#' @param Lmax Clipping bound for Lagrange multipliers. Default 20.
-#' @param c1 Multiplicative factor for rho increase (must be > 1). Default 1.1.
+#' @param Lmax Clipping bound for Lagrange multipliers. Default 50.
+#' @param c1 Multiplicative factor for rho increase (must be > 1). Default 10.
 #' @param c2 Threshold for rho update (must be in (0,1)). Default 0.25.
 #' @param p Exponent in Qp (must be in (0,1]). Closed form solutions for 1/2, 2/3, 1. Default 1.
 #' @param nstart Number of random starts. Default 1 (no random restarts).
@@ -77,11 +77,11 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                        orthogonal = FALSE,
                        tol1 = 1e-6, tol2 = 1e-3, tol3 = 1e-3,
                        verbose = TRUE, v_every = 10L,
-                       Lmax = 20, c1 = 1.1, c2 = 0.25, p = 1,
+                       Lmax = 50, c1 = 10, c2 = 0.25, p = 1,
                        nstart = 1L, ostart = TRUE, seed = NULL, ncores = 1,
-                       refine = T) {
+                       refine = F) {
 
-    # Input validation
+    # Input validation ----
     if(is.null(A)) stop("Factor loading matrix A must be included.")
     if (!is.matrix(A)) A <- as.matrix(A)
     if (!is.null(Phi) && !is.matrix(Phi)) Phi <- as.matrix(Phi)
@@ -117,7 +117,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     if (!is.null(B_start)) B_start = B_start[,c(idmf,idgf)]
     if (!is.null(Phi_start)) Phi_start = Phi_start[c(idmf,idgf),c(idmf,idgf)]
 
-    # --- Single start ---
+    # Single start ----
     if (nstart == 1L) {
         result <- ALM_cpp(
             A0_ = A,
@@ -145,7 +145,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
         return(result)
     }
 
-    # --- Multiple random starts ---
+    # Multiple random starts ----
     if (is.null(B_start)) {
         message(sprintf("B_start is NULL; (nstart = %d) random orthogonal bi-factor rotations of initial factor loading matrix are used as starting points.", nstart))
         B_start = as.matrix(A)
@@ -239,23 +239,28 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     obj_vals = vapply(results, function(r) r$obj.end, numeric(1))
     con_vals = vapply(results, function(r) r$cons.end, numeric(1))
     conv_all = vapply(results, function(r) r$converged, numeric(1))
-    best_idx = which.min(obj_vals)
+    best_idx = which.min(obj_vals + con_vals)
     best = results[[best_idx]]
 
     if (verbose) {
-        message(sprintf("Random starts: %d | Min. Qp(B): %.3f; h(B,Phi): %.3f (start %d) | Range: [%.3f, %.3f]",
-                        nstart, obj_vals[best_idx], con_vals[best_idx], best_idx, min(obj_vals), max(obj_vals)))
+        message(sprintf("Best start: %i (out of %i, %.0f%% converged within maxit_ou) \nMin. Qp(B): %.3f; h(B,Phi): %.3f | Range Qp: [%.3f, %.3f] | Range h: [%.3f, %.3f]",
+                        best_idx, nstart, 100 * sum(conv_all)/length(conv_all),
+                        obj_vals[best_idx], con_vals[best_idx],
+                        min(obj_vals), max(obj_vals), min(con_vals), max(con_vals)))
     }
 
+    refine = F
+    # Refinement ----
     if (!best$converged & refine){
-        ref = ALM_cpp(
+        tryCatch({
+            ref = ALM_cpp(
             A0_ = A,
             Phi0_ = Phi,
             Bstart_ = best$B,
             Phistart_ = best$Phi,
-            rho = rho,
+            rho = best$rho*2,
             t = t,
-            maxit_ou = maxit_ou,
+            maxit_ou = maxit_ou*2,
             maxit_in = maxit_in,
             maxit_bt = maxit_bt,
             # hesit = hesit,
@@ -281,6 +286,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                             ref$obj.end, ref$cons.end))
         }
         return(ref)
+        })
     }
 
     toc = Sys.time()

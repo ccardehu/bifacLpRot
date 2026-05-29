@@ -20,8 +20,8 @@ bifactorLp(
   tol3 = 0.001,
   verbose = TRUE,
   v_every = 10L,
-  Lmax = 20,
-  c1 = 1.1,
+  Lmax = 50,
+  c1 = 10,
   c2 = 0.25,
   p = 1,
   nstart = 1L,
@@ -63,9 +63,9 @@ Ignored when \code{nstart > 1}.}
 
 \item{v_every}{Print frequency (every v_every outer iterations). Default 10.}
 
-\item{Lmax}{Clipping bound for Lagrange multipliers. Default 20.}
+\item{Lmax}{Clipping bound for Lagrange multipliers. Default 50.}
 
-\item{c1}{Multiplicative factor for rho increase (must be > 1). Default 1.1.}
+\item{c1}{Multiplicative factor for rho increase (must be > 1). Default 10.}
 
 \item{c2}{Threshold for rho update (must be in (0,1)). Default 0.25.}
 
