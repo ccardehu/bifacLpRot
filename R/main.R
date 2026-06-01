@@ -29,6 +29,7 @@
 #' @param ncores Number of parallel workers. Default 1 (sequential).
 #'   Requires the \code{future} and \code{future.apply} packages for \code{ncores > 1}.
 #'   If NULL, defaults to \code{ncores = future::availableCores() - 2}.
+#' @param refine Logical; refine best solution from obtained starting values? Default FALSE.
 #'
 #' @return A list containing:
 #' \itemize{
@@ -249,7 +250,6 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                         min(obj_vals), max(obj_vals), min(con_vals), max(con_vals)))
     }
 
-    refine = F
     # Refinement ----
     if (!best$converged & refine){
         tryCatch({
@@ -258,9 +258,9 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
             Phi0_ = Phi,
             Bstart_ = best$B,
             Phistart_ = best$Phi,
-            rho = best$rho*2,
+            rho = best$rho,
             t = t,
-            maxit_ou = maxit_ou*2,
+            maxit_ou = maxit_ou,
             maxit_in = maxit_in,
             maxit_bt = maxit_bt,
             # hesit = hesit,

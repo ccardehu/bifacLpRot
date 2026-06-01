@@ -28,7 +28,7 @@ bifactorLp(
   ostart = TRUE,
   seed = NULL,
   ncores = 1,
-  refine = T
+  refine = F
 )
 }
 \arguments{
@@ -82,6 +82,8 @@ and the solution with the smallest objective value is returned.}
 \item{ncores}{Number of parallel workers. Default 1 (sequential).
 Requires the \code{future} and \code{future.apply} packages for \code{ncores > 1}.
 If NULL, defaults to \code{ncores = future::availableCores() - 2}.}
+
+\item{refine}{Logical; refine best solution from obtained starting values? Default FALSE.}
 }
 \value{
 A list containing:
