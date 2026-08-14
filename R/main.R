@@ -30,6 +30,7 @@
 #'   Requires the \code{future} and \code{future.apply} packages for \code{ncores > 1}.
 #'   If NULL, defaults to \code{ncores = future::availableCores() - 2}.
 #' @param refine Logical; refine best solution from obtained starting values? Default FALSE.
+#' @param sel_weight Ranking weights: 1 = Ranking based on Qp(B), 0 = Ranking based on h(B,Phi). Default 0.5.
 #'
 #' @return A list containing:
 #' \itemize{
@@ -80,7 +81,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                        verbose = TRUE, v_every = 10L,
                        Lmax = 50, c1 = 10, c2 = 0.25, p = 1,
                        nstart = 1L, ostart = TRUE, seed = NULL, ncores = 1,
-                       refine = F) {
+                       refine = F, sel_weight = 0.5) {
 
     # Input validation ----
     if(is.null(A)) stop("Factor loading matrix A must be included.")
@@ -108,6 +109,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
         ncores <- if (is.null(ncores)) 1L else as.integer(ncores)
     }
     if (ncores < 1L) stop("ncores must be >= 1")
+    if (sel_weight < 0 && sel_weight > 1) stop("sel_weight bust be in [0,1]")
 
     tic = Sys.time()
 
@@ -240,7 +242,8 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     obj_vals = vapply(results, function(r) r$obj.end, numeric(1))
     con_vals = vapply(results, function(r) r$cons.end, numeric(1))
     conv_all = vapply(results, function(r) r$converged, numeric(1))
-    best_idx = which.min(obj_vals + con_vals)
+    # best_idx = which.min(obj_vals + con_vals)
+    best_idx = which.min(sel_weight*rank(obj_vals) + (1-sel_weight)*rank(con_vals))
     best = results[[best_idx]]
 
     if (verbose) {

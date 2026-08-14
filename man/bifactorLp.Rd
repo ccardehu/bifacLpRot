@@ -28,7 +28,8 @@ bifactorLp(
   ostart = TRUE,
   seed = NULL,
   ncores = 1,
-  refine = F
+  refine = F,
+  sel_weight = 0.5
 )
 }
 \arguments{
@@ -84,6 +85,8 @@ Requires the \code{future} and \code{future.apply} packages for \code{ncores > 1
 If NULL, defaults to \code{ncores = future::availableCores() - 2}.}
 
 \item{refine}{Logical; refine best solution from obtained starting values? Default FALSE.}
+
+\item{sel_weight}{Ranking weights: 1 = Ranking based on Qp(B), 0 = Ranking based on h(B,Phi). Default 0.5.}
 }
 \value{
 A list containing:
