@@ -24,7 +24,7 @@ double obj2(arma::mat& B, arma::mat& R, arma::mat& L,
 
 arma::mat gradB(arma::mat& B, arma::mat& R, arma::mat& L,
                 const arma::mat& AAt, double rho1){
-    if (arma::abs(B).max() > 1e7) {
+    if (arma::abs(B).max() > 1e8) {
         Rcpp::stop("B update diverged. Reduce penalty (rho) or step size (t)");
     }
     arma::mat Phi = R*R.t();
@@ -442,7 +442,7 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
 
         // Adaptive rho update
         double resid_old = arma::norm(AAt - Bo * Phio * Bo.t(), "fro");
-        if (resid_new < c2 * resid_old) rho = std::min(rho*c1, 1e7);
+        if (resid_new < c2 * resid_old) rho = std::min(rho*c1, 1e8);
     }
 
     // Final sign fix
