@@ -315,7 +315,7 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
                    Rcpp::Nullable<arma::mat> Phistart_ = R_NilValue,
                    double rho = 10,
                    double t = 1e-3,
-                   int maxit_ou = 5000, int maxit_in = 300, int maxit_bt = 20, //int hesit = 50,
+                   int maxit_ou = 5000, int maxit_in = 300, int maxit_bt = 20,
                    bool orthogonal = false,
                    double tol1 = 1e-6, double tol2 = 1e-3, double tol3 = 1e-3,
                    bool verbose = true, int v_every = 10,
@@ -345,7 +345,7 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
     // Number of parameters (for scaling)
     int NR = orthogonal ? 0 : (static_cast<int>(freeR(R).n_elem) - 1);
     int NP = static_cast<int>(B.n_elem) + NR;
-    int NJ = B.n_rows * (B.n_rows - 1)/2;
+    int NJ = B.n_rows * (B.n_rows + 1)/2;
 
     // const arma::mat Kpq = commutation_matrix(B.n_rows, B.n_cols);
     const arma::mat AAt = A0 * Phi0 * A0.t();

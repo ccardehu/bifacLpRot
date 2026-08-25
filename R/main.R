@@ -10,7 +10,6 @@
 #' @param maxit_ou Maximum outer iterations. Default 5000.
 #' @param maxit_in Maximum inner iterations. Default 300.
 #' @param maxit_bt Maximum back-tracking iterations. Default 20.
-# @param hesit Iteration number to add Hessian information. Default 50.
 #' @param orthogonal Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.
 #' @param tol1 Convergence tolerance for successive parameter change (outer loop). Default 1e-6.
 #' @param tol2 Convergence tolerance for constraint violation check. Default 1e-3.
@@ -75,7 +74,7 @@
 #' @importFrom Rcpp sourceCpp
 bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                        rho = 10, t = 1e-3,
-                       maxit_ou = 5000, maxit_in = 300, maxit_bt = 20, #hesit = 50,
+                       maxit_ou = 5000, maxit_in = 300, maxit_bt = 20,
                        orthogonal = FALSE,
                        tol1 = 1e-6, tol2 = 1e-3, tol3 = 1e-3,
                        verbose = TRUE, v_every = 10L,
@@ -93,7 +92,6 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     maxit_ou = as.integer(maxit_ou)
     maxit_in = as.integer(maxit_in)
     maxit_bt = as.integer(maxit_bt)
-    # hesit = as.integer(hesit)
     v_every = as.integer(v_every)
     nstart = as.integer(nstart)
     if (nstart < 1L) stop("nstart must be >= 1")
@@ -132,7 +130,6 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
             maxit_ou = maxit_ou,
             maxit_in = maxit_in,
             maxit_bt = maxit_bt,
-            # hesit = hesit,
             orthogonal = orthogonal,
             tol1 = tol1,
             tol2 = tol2,
@@ -196,7 +193,6 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                 maxit_ou = maxit_ou,
                 maxit_in = maxit_in,
                 maxit_bt = maxit_bt,
-                # hesit = hesit,
                 orthogonal = orthogonal,
                 tol1 = tol1,
                 tol2 = tol2,
@@ -238,62 +234,102 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
         stop("All random starts failed.")
     }
 
-    # Select best result (lowest objective; Qp + constraint violation)
+    # Pick min(Qp) only among results meeting feasibility tolerance
     obj_vals = vapply(results, function(r) r$obj.end, numeric(1))
     con_vals = vapply(results, function(r) r$cons.end, numeric(1))
-    conv_all = vapply(results, function(r) r$converged, numeric(1))
-    # best_idx = which.min(obj_vals + con_vals)
-    best_idx = which.min(sel_weight*rank(obj_vals) + (1-sel_weight)*rank(con_vals))
+    conv_all = vapply(results, function(r) r$converged, logical(1))
+    NJ = nrow(A) * (nrow(A) + 1) / 2
+
+    feas_vals = con_vals / NJ
+    feasible  = feas_vals < tol2
+
+    if (any(feasible)) {
+        cand = which(feasible)
+        best_idx = cand[which.min(obj_vals[cand])]
+    } else {
+        # No start met the tolerance: take the least-infeasible one and refine.
+        best_idx = which.min(feas_vals)
+        if (verbose) {
+            message(sprintf(
+                "No feasible solution (min h/NJ = %.3g > tol2); selecting least-infeasible start.",
+                min(feas_vals)))
+        }
+    }
     best = results[[best_idx]]
 
     if (verbose) {
-        message(sprintf("Best start: %i (out of %i, %.0f%% converged within maxit_ou) \nMin. Qp(B): %.3f; h(B,Phi): %.3f | Range Qp: [%.3f, %.3f] | Range h: [%.3f, %.3f]",
-                        best_idx, nstart, 100 * sum(conv_all)/length(conv_all),
-                        obj_vals[best_idx], con_vals[best_idx],
-                        min(obj_vals), max(obj_vals), min(con_vals), max(con_vals)))
+        message(sprintf(
+            "Best start: %i (of %i; %.0f%% converged, %.0f%% feasible)\nQp(B): %.3f; h(B,Phi): %.4f | Range Qp (feasible only): [%s] | Range h: [%.4f, %.4f]",
+            best_idx, nstart, 100 * mean(conv_all), 100 * mean(feasible),
+            obj_vals[best_idx], con_vals[best_idx],
+            if (any(feasible))
+                sprintf("%.3f, %.3f", min(obj_vals[feasible]), max(obj_vals[feasible]))
+            else "none feasible",
+            min(con_vals), max(con_vals)))
     }
 
+    # if (verbose) {
+    #     message(sprintf("Best start: %i (out of %i, %.0f%% converged within maxit_ou) \nMin. Qp(B): %.3f; h(B,Phi): %.3f | Range Qp: [%.3f, %.3f] | Range h: [%.3f, %.3f]",
+    #                     best_idx, nstart, 100 * sum(conv_all)/length(conv_all),
+    #                     obj_vals[best_idx], con_vals[best_idx],
+    #                     min(obj_vals), max(obj_vals), min(con_vals), max(con_vals)))
+    # }
+
     # Refinement ----
-    if (!best$converged & refine){
-        tryCatch({
-            ref = ALM_cpp(
-            A0_ = A,
-            Phi0_ = Phi,
-            Bstart_ = best$B,
-            Phistart_ = best$Phi,
-            rho = best$rho,
-            t = t,
-            maxit_ou = maxit_ou,
-            maxit_in = maxit_in,
-            maxit_bt = maxit_bt,
-            # hesit = hesit,
-            orthogonal = orthogonal,
-            tol1 = tol1,
-            tol2 = tol2,
-            tol3 = tol3,
-            verbose = FALSE,
-            v_every = v_every,
-            Lmax = Lmax,
-            c1 = c1,
-            c2 = c2,
-            p = p
-        )
-        ref$nstart = nstart + 1L
-        toc = Sys.time()
-        ref$all.obje = c(obj_vals, ref$obj.end)
-        ref$all.cons = c(con_vals, ref$cons.end)
-        ref$all.conv = c(conv_all, ref$converged)
-        ref$time = difftime(toc,tic,units = "secs")
-        if(verbose) {
-            message(sprintf("Refined from best solution: Qp(B): %.3f; h(B,Phi): %.3f",
-                            ref$obj.end, ref$cons.end))
+    refined = FALSE
+    if (refine && (!best$converged || !feasible[best_idx])){
+        ref = tryCatch({
+            ALM_cpp(
+                A0_ = A,
+                Phi0_ = Phi,
+                Bstart_ = best$B,
+                Phistart_ = best$Phi,
+                rho = best$rho.end,
+                t = t,
+                maxit_ou = maxit_ou,
+                maxit_in = maxit_in,
+                maxit_bt = maxit_bt,
+                orthogonal = orthogonal,
+                tol1 = tol1,
+                tol2 = tol2,
+                tol3 = tol3,
+                verbose = FALSE,
+                v_every = v_every,
+                Lmax = Lmax,
+                c1 = c1,
+                c2 = c2,
+                p = p
+            )},
+            error = function(e) {
+                warning(sprintf("Refinement failed (%s); returning best multi-start solution.",
+                                conditionMessage(e)))
+                NULL
+            })
+
+        if (!is.null(ref)) {
+            ref_feas  = (ref$cons.end / NJ) <= tol2
+            best_feas = feasible[best_idx]
+            take_ref  =
+                ( ref_feas && !best_feas) ||
+                ( ref_feas &&  best_feas && ref$obj.end  < obj_vals[best_idx]) ||
+                (!ref_feas && !best_feas && ref$cons.end < con_vals[best_idx])
+
+            obj_vals = c(obj_vals, ref$obj.end)
+            con_vals = c(con_vals, ref$cons.end)
+            conv_all = c(conv_all, ref$converged)
+
+            if (take_ref) { best = ref; refined = TRUE }
+            if (verbose) {
+                message(sprintf("Refinement: Qp(B): %.3f; h(B,Phi): %.4f (%s)",
+                                ref$obj.end, ref$cons.end,
+                                if (take_ref) "accepted" else "rejected"))
+            }
         }
-        return(ref)
-        })
     }
 
     toc = Sys.time()
     best$nstart = nstart
+    best$refined  = refined
     best$all.obje = obj_vals
     best$all.cons = con_vals
     best$all.conv = conv_all
