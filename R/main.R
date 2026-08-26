@@ -11,12 +11,12 @@
 #' @param maxit_in Maximum inner iterations. Default 300.
 #' @param maxit_bt Maximum back-tracking iterations. Default 20.
 #' @param orthogonal Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.
-#' @param tol1 Convergence tolerance for successive parameter change (outer loop). Default 1e-6.
-#' @param tol2 Convergence tolerance for constraint violation check. Default 1e-3.
+#' @param tol1 Convergence tolerance for successive parameter change (outer loop). Default 1e-4.
+#' @param tol2 Convergence tolerance for constraint violation check. Default 1e-2.
 #' @param tol3 Convergence tolerance for successive parameter change (inner loop). Default 1e-3.
 #' @param verbose Logical; print progress. Default TRUE.
 #' @param v_every Print frequency (every v_every outer iterations). Default 10.
-#' @param Lmax Clipping bound for Lagrange multipliers. Default 50.
+#' @param Lmax Clipping bound for Lagrange multipliers. Default 100.
 #' @param c1 Multiplicative factor for rho increase (must be > 1). Default 10.
 #' @param c2 Threshold for rho update (must be in (0,1)). Default 0.25.
 #' @param p Exponent in Qp (must be in (0,1]). Closed form solutions for 1/2, 2/3, 1. Default 1.
@@ -29,7 +29,6 @@
 #'   Requires the \code{future} and \code{future.apply} packages for \code{ncores > 1}.
 #'   If NULL, defaults to \code{ncores = future::availableCores() - 2}.
 #' @param refine Logical; refine best solution from obtained starting values? Default FALSE.
-#' @param sel_weight Ranking weights: 1 = Ranking based on Qp(B), 0 = Ranking based on h(B,Phi). Default 0.5.
 #'
 #' @return A list containing:
 #' \itemize{
@@ -76,11 +75,11 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                        rho = 10, t = 1e-3,
                        maxit_ou = 5000, maxit_in = 300, maxit_bt = 20,
                        orthogonal = FALSE,
-                       tol1 = 1e-6, tol2 = 1e-3, tol3 = 1e-3,
+                       tol1 = 1e-4, tol2 = 1e-2, tol3 = 1e-3,
                        verbose = TRUE, v_every = 10L,
-                       Lmax = 50, c1 = 10, c2 = 0.25, p = 1,
+                       Lmax = 100, c1 = 10, c2 = 0.25, p = 1,
                        nstart = 1L, ostart = TRUE, seed = NULL, ncores = 1,
-                       refine = F, sel_weight = 0.5) {
+                       refine = F) {
 
     # Input validation ----
     if(is.null(A)) stop("Factor loading matrix A must be included.")
@@ -107,7 +106,6 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
         ncores <- if (is.null(ncores)) 1L else as.integer(ncores)
     }
     if (ncores < 1L) stop("ncores must be >= 1")
-    if (sel_weight < 0 && sel_weight > 1) stop("sel_weight bust be in [0,1]")
 
     tic = Sys.time()
 
@@ -147,7 +145,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 
     # Multiple random starts ----
     if (is.null(B_start)) {
-        message(sprintf("B_start is NULL; (nstart = %d) random orthogonal bi-factor rotations of initial factor loading matrix are used as starting points.", nstart))
+        message(sprintf("B_start is NULL; (nstart = %d) random orthogonal bi-factor rotations of initial factor loading matrix used as starting points.", nstart))
         B_start = as.matrix(A)
     }
 
@@ -238,9 +236,10 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     obj_vals = vapply(results, function(r) r$obj.end, numeric(1))
     con_vals = vapply(results, function(r) r$cons.end, numeric(1))
     conv_all = vapply(results, function(r) r$converged, logical(1))
-    NJ = nrow(A) * (nrow(A) + 1) / 2
+    NJ = (nrow(A) * (nrow(A) + 1) / 2)
+    froAAt = sqrt(sum(A^2))
 
-    feas_vals = con_vals / NJ
+    feas_vals = con_vals / froAAt # NJ
     feasible  = feas_vals < tol2
 
     if (any(feasible)) {
@@ -251,7 +250,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
         best_idx = which.min(feas_vals)
         if (verbose) {
             message(sprintf(
-                "No feasible solution (min h/NJ = %.3g > tol2); selecting least-infeasible start.",
+                "No feasible solution (min h(B,Phi)/||A*t(A)||_F = %.3f > tol2); selecting least-infeasible start.",
                 min(feas_vals)))
         }
     }
@@ -259,13 +258,15 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 
     if (verbose) {
         message(sprintf(
-            "Best start: %i (of %i; %.0f%% converged, %.0f%% feasible)\nQp(B): %.3f; h(B,Phi): %.4f | Range Qp (feasible only): [%s] | Range h: [%.4f, %.4f]",
+            "Best start: %i (of %i; %.0f%% converged within maxit_ou iterations, %.0f%% feasible)\nQp(B): %.3f; h(B,Phi): %.4f | Range Qp (feasible only): [%s] | Range h (feasible only): [%s]",
             best_idx, nstart, 100 * mean(conv_all), 100 * mean(feasible),
             obj_vals[best_idx], con_vals[best_idx],
             if (any(feasible))
                 sprintf("%.3f, %.3f", min(obj_vals[feasible]), max(obj_vals[feasible]))
             else "none feasible",
-            min(con_vals), max(con_vals)))
+            if (any(feasible))
+                sprintf("%.4f, %.4f", min(con_vals[feasible]), max(con_vals[feasible]))
+            else "none feasible"))
     }
 
     # if (verbose) {
@@ -322,7 +323,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
             if (verbose) {
                 message(sprintf("Refinement: Qp(B): %.3f; h(B,Phi): %.4f (%s)",
                                 ref$obj.end, ref$cons.end,
-                                if (take_ref) "accepted" else "rejected"))
+                                if (take_ref) "accepted" else "rejected, unrefined solution returned"))
             }
         }
     }

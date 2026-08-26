@@ -14,7 +14,7 @@ double obj2(arma::mat& B, arma::mat& R, arma::mat& L,
 
     arma::mat Phi = R * R.t();
     arma::mat resid = AAt - B * Phi * B.t();
-    arma::mat tmp1 = L.t() * resid;
+    // arma::mat tmp1 = L.t() * resid;
 
     double term1 = 0.5 * rho1 * arma::accu(arma::square(resid));
     double term2 = arma::accu(L % resid);
@@ -24,7 +24,7 @@ double obj2(arma::mat& B, arma::mat& R, arma::mat& L,
 
 arma::mat gradB(arma::mat& B, arma::mat& R, arma::mat& L,
                 const arma::mat& AAt, double rho1){
-    if (arma::abs(B).max() > 1e8) {
+    if (arma::abs(B).max() > 1e4) {
         Rcpp::stop("B update diverged. Reduce penalty (rho) or step size (t)");
     }
     arma::mat Phi = R*R.t();
@@ -317,9 +317,9 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
                    double t = 1e-3,
                    int maxit_ou = 5000, int maxit_in = 300, int maxit_bt = 20,
                    bool orthogonal = false,
-                   double tol1 = 1e-6, double tol2 = 1e-3, double tol3 = 1e-3,
+                   double tol1 = 1e-4, double tol2 = 1e-2, double tol3 = 1e-3,
                    bool verbose = true, int v_every = 10,
-                   double Lmax = 50.0, double c1 = 10, double c2 = 0.25,
+                   double Lmax = 100.0, double c1 = 10, double c2 = 0.25,
                    double p = 1) {
 
     // Input validation
@@ -350,6 +350,7 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
     // const arma::mat Kpq = commutation_matrix(B.n_rows, B.n_cols);
     const arma::mat AAt = A0 * Phi0 * A0.t();
     double outn = Qp(B,p);
+    double froAAt = arma::norm(AAt,"fro");
 
     if (verbose) {
         Rcpp::Rcout << "\n Qp(B) (iter: 0): " << std::fixed << std::setprecision(3) << outn;
@@ -424,6 +425,8 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
         L += rho * (AAt - B * Phi * B.t());
         L = 0.5 * (L + L.t());
         L = arma::clamp(L, -Lmax, Lmax);
+        arma::uvec idL = arma::find(arma::abs(L) == Lmax);
+        L(idL).fill(0.0);
         outn = Qp(B,p);
 
         if (verbose && (i % v_every == 0)) {
@@ -435,14 +438,14 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
         stopC1 = (arma::accu(arma::square(B - Bo)) + critR1) / NP;
         double resid_new = arma::norm(AAt - B * Phi * B.t(), "fro");
 
-        if ((std::sqrt(stopC1) < tol1) && (resid_new/NJ < tol2)){
+        if ((std::sqrt(stopC1) < tol1) && (resid_new/froAAt < tol2)){
             converged = true;
             break;
         }
 
         // Adaptive rho update
         double resid_old = arma::norm(AAt - Bo * Phio * Bo.t(), "fro");
-        if (resid_new < c2 * resid_old) rho = std::min(rho*c1, 1e8);
+        if (resid_new > c2 * resid_old) rho = std::min(rho*c1, 1e4);
     }
 
     // Final sign fix

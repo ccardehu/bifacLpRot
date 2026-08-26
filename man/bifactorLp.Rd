@@ -15,12 +15,12 @@ bifactorLp(
   maxit_in = 300,
   maxit_bt = 20,
   orthogonal = FALSE,
-  tol1 = 1e-06,
-  tol2 = 0.001,
+  tol1 = 1e-04,
+  tol2 = 0.01,
   tol3 = 0.001,
   verbose = TRUE,
   v_every = 10L,
-  Lmax = 50,
+  Lmax = 100,
   c1 = 10,
   c2 = 0.25,
   p = 1,
@@ -28,8 +28,7 @@ bifactorLp(
   ostart = TRUE,
   seed = NULL,
   ncores = 1,
-  refine = F,
-  sel_weight = 0.5
+  refine = F
 )
 }
 \arguments{
@@ -54,9 +53,9 @@ Ignored when \code{nstart > 1}.}
 
 \item{orthogonal}{Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.}
 
-\item{tol1}{Convergence tolerance for successive parameter change (outer loop). Default 1e-6.}
+\item{tol1}{Convergence tolerance for successive parameter change (outer loop). Default 1e-4.}
 
-\item{tol2}{Convergence tolerance for constraint violation check. Default 1e-3.}
+\item{tol2}{Convergence tolerance for constraint violation check. Default 1e-2.}
 
 \item{tol3}{Convergence tolerance for successive parameter change (inner loop). Default 1e-3.}
 
@@ -64,7 +63,7 @@ Ignored when \code{nstart > 1}.}
 
 \item{v_every}{Print frequency (every v_every outer iterations). Default 10.}
 
-\item{Lmax}{Clipping bound for Lagrange multipliers. Default 50.}
+\item{Lmax}{Clipping bound for Lagrange multipliers. Default 100.}
 
 \item{c1}{Multiplicative factor for rho increase (must be > 1). Default 10.}
 
@@ -85,8 +84,6 @@ Requires the \code{future} and \code{future.apply} packages for \code{ncores > 1
 If NULL, defaults to \code{ncores = future::availableCores() - 2}.}
 
 \item{refine}{Logical; refine best solution from obtained starting values? Default FALSE.}
-
-\item{sel_weight}{Ranking weights: 1 = Ranking based on Qp(B), 0 = Ranking based on h(B,Phi). Default 0.5.}
 }
 \value{
 A list containing:
