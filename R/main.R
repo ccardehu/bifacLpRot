@@ -8,20 +8,20 @@
 #' @param rho Initial penalty parameter for augmented Lagrangian method (L). Default 10.
 #' @param t Initial step size. Default 1e-3.
 #' @param maxit_ou Maximum outer iterations. Default 5000.
-#' @param maxit_in Maximum inner iterations. Default 300.
-#' @param maxit_bt Maximum back-tracking iterations. Default 20.
+#' @param maxit_in Maximum inner iterations. Default 500.
+#' @param maxit_bt Maximum back-tracking iterations. Default 50.
 #' @param orthogonal Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.
 #' @param tol1 Convergence tolerance for successive parameter change (outer loop). Default 1e-4.
 #' @param tol2 Convergence tolerance for constraint violation check. Default 1e-2.
 #' @param tol3 Convergence tolerance for successive parameter change (inner loop). Default 1e-3.
 #' @param verbose Logical; print progress. Default TRUE.
 #' @param v_every Print frequency (every v_every outer iterations). Default 10.
-#' @param Lmax Clipping bound for Lagrange multipliers. Default 100.
+#' @param Lmax (Deprecated) Clipping bound for Lagrange multipliers. Default 1e8.
 #' @param c1 Multiplicative factor for rho increase (must be > 1). Default 10.
 #' @param c2 Threshold for rho update (must be in (0,1)). Default 0.25.
 #' @param p Exponent in Qp (must be in (0,1]). Closed form solutions for 1/2, 2/3, 1. Default 1.
-#' @param nstart Number of random starts. Default 1 (no random restarts).
-#'   When \code{nstart > 1}, each start uses a random orthogonal rotation of \code{A}
+#' @param nstart Number of random starts. Default 0 (no random restarts).
+#'   When \code{nstart > 0}, each start uses a random orthogonal rotation of \code{A}
 #'   and the solution with the smallest objective value is returned.
 #' @param ostart Logical; orthogonal rotation for random starts? Default TRUE.
 #' @param seed Optional integer seed for reproducibility of random starts. Default NULL.
@@ -73,12 +73,12 @@
 #' @importFrom Rcpp sourceCpp
 bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                        rho = 10, t = 1e-3,
-                       maxit_ou = 5000, maxit_in = 300, maxit_bt = 20,
+                       maxit_ou = 5000, maxit_in = 500, maxit_bt = 50,
                        orthogonal = FALSE,
                        tol1 = 1e-4, tol2 = 1e-2, tol3 = 1e-3,
                        verbose = TRUE, v_every = 10L,
-                       Lmax = 100, c1 = 10, c2 = 0.25, p = 1,
-                       nstart = 1L, ostart = TRUE, seed = NULL, ncores = 1,
+                       Lmax = 1e3, c1 = 10, c2 = 0.25, p = 1,
+                       nstart = 0L, ostart = TRUE, seed = NULL, ncores = 1,
                        refine = F) {
 
     # Input validation ----
@@ -93,10 +93,10 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     maxit_bt = as.integer(maxit_bt)
     v_every = as.integer(v_every)
     nstart = as.integer(nstart)
-    if (nstart < 1L) stop("nstart must be >= 1")
+    if (nstart < 0L) stop("nstart must be >= 0")
 
     # Auto-detect cores when nstart > 1 and ncores not specified
-    if (nstart > 1L && is.null(ncores)) {
+    if (nstart > 0L && is.null(ncores)) {
         if (requireNamespace("future", quietly = TRUE)) {
             ncores <- future::availableCores() - 2
         } else {
@@ -117,7 +117,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     if (!is.null(Phi_start)) Phi_start = Phi_start[c(idmf,idgf),c(idmf,idgf)]
 
     # Single start ----
-    if (nstart == 1L) {
+    if (nstart == 0L) {
         result <- ALM_cpp(
             A0_ = A,
             Phi0_ = Phi,
@@ -139,7 +139,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
             c2 = c2,
             p = p
         )
-        result$nstart = 1L
+        result$nstart = 0L
         return(result)
     }
 
@@ -151,25 +151,29 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 
     # Pre-generate seeds for reproducibility
     if (!is.null(seed)) set.seed(seed)
-    seeds = sample.int(.Machine$integer.max, nstart)
+    if(nstart > 1) {
+        seeds = sample.int(.Machine$integer.max, nstart)
+    } else{
+        seeds = seed
+    }
 
     # Helper: generate one random start matrix
     make_Bstart = function(A, seed_i, ostart) {
         set.seed(seed_i)
-        K = ncol(A)
-        Z = matrix(rnorm((K-1) * (K-1)), K-1, K-1)
+        K = ncol(A)-1
+        Z = matrix(rnorm((K) * (K)), K, K)
         if(ostart){
             qrZ = qr(Z)
             Tr = qr.Q(qrZ)
             # Sign-correction for Haar distribution
             d = sign(diag(qr.R(qrZ)))
             d[d == 0] = 1
-            Tr = Tr * rep(d, each = K-1)
-            Tr = rbind(c(1, rep(0, K-1)), cbind(rep(0, K-1), Tr))
+            Tr = Tr * rep(d, each = K)
+            Tr = rbind(c(1, rep(0, K)), cbind(rep(0, K), Tr))
         } else {
             d = sqrt(colSums(Z^2)) #sqrt(colSums(Z^2))
             Tr = Z /d #%*% diag(1/d)
-            Tr = rbind(c(1, rep(0, K-1)), cbind(rep(0, K-1), Tr))
+            Tr = rbind(c(1, rep(0, K)), cbind(rep(0, K), Tr))
         }
         A %*% Tr
     }
@@ -236,10 +240,10 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     obj_vals = vapply(results, function(r) r$obj.end, numeric(1))
     con_vals = vapply(results, function(r) r$cons.end, numeric(1))
     conv_all = vapply(results, function(r) r$converged, logical(1))
-    NJ = (nrow(A) * (nrow(A) + 1) / 2)
-    froAAt = sqrt(sum(A^2))
+    # NJ = (nrow(A) * (nrow(A) + 1) / 2)
+    # froAAt = sqrt(sum(A^2))
 
-    feas_vals = con_vals / froAAt # NJ
+    feas_vals = con_vals #/ froAAt # NJ
     feasible  = feas_vals < tol2
 
     if (any(feasible)) {
@@ -250,7 +254,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
         best_idx = which.min(feas_vals)
         if (verbose) {
             message(sprintf(
-                "No feasible solution (min h(B,Phi)/||A*t(A)||_F = %.3f > tol2); selecting least-infeasible start.",
+                "No feasible solution (min h(B,Phi) = %.3f > tol2); selecting least-infeasible start.",
                 min(feas_vals)))
         }
     }
@@ -308,7 +312,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
             })
 
         if (!is.null(ref)) {
-            ref_feas  = (ref$cons.end / NJ) <= tol2
+            ref_feas  = (ref$cons.end) <= tol2 # / NJ / froAAt
             best_feas = feasible[best_idx]
             take_ref  =
                 ( ref_feas && !best_feas) ||
@@ -335,5 +339,6 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     best$all.cons = con_vals
     best$all.conv = conv_all
     best$time = difftime(toc,tic,units = "secs")
+    best$seeds = seeds
     return(best)
 }

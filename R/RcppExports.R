@@ -14,7 +14,7 @@ freeR <- function(R) {
     .Call(`_bifacLpRot_freeR`, R)
 }
 
-ALM_cpp <- function(A0_, Phi0_ = NULL, Bstart_ = NULL, Phistart_ = NULL, rho = 10, t = 1e-3, maxit_ou = 5000L, maxit_in = 300L, maxit_bt = 20L, orthogonal = FALSE, tol1 = 1e-4, tol2 = 1e-2, tol3 = 1e-3, verbose = TRUE, v_every = 10L, Lmax = 100.0, c1 = 10, c2 = 0.25, p = 1) {
+ALM_cpp <- function(A0_, Phi0_ = NULL, Bstart_ = NULL, Phistart_ = NULL, rho = 10, t = 1e-3, maxit_ou = 5000L, maxit_in = 500L, maxit_bt = 50L, orthogonal = FALSE, tol1 = 1e-4, tol2 = 1e-2, tol3 = 1e-3, verbose = TRUE, v_every = 10L, Lmax = 1e3, c1 = 10, c2 = 0.25, p = 1) {
     .Call(`_bifacLpRot_ALM_cpp`, A0_, Phi0_, Bstart_, Phistart_, rho, t, maxit_ou, maxit_in, maxit_bt, orthogonal, tol1, tol2, tol3, verbose, v_every, Lmax, c1, c2, p)
 }
 

@@ -12,19 +12,19 @@ bifactorLp(
   rho = 10,
   t = 0.001,
   maxit_ou = 5000,
-  maxit_in = 300,
-  maxit_bt = 20,
+  maxit_in = 500,
+  maxit_bt = 50,
   orthogonal = FALSE,
   tol1 = 1e-04,
   tol2 = 0.01,
   tol3 = 0.001,
   verbose = TRUE,
   v_every = 10L,
-  Lmax = 100,
+  Lmax = 1000,
   c1 = 10,
   c2 = 0.25,
   p = 1,
-  nstart = 1L,
+  nstart = 0L,
   ostart = TRUE,
   seed = NULL,
   ncores = 1,
@@ -47,9 +47,9 @@ Ignored when \code{nstart > 1}.}
 
 \item{maxit_ou}{Maximum outer iterations. Default 5000.}
 
-\item{maxit_in}{Maximum inner iterations. Default 300.}
+\item{maxit_in}{Maximum inner iterations. Default 500.}
 
-\item{maxit_bt}{Maximum back-tracking iterations. Default 20.}
+\item{maxit_bt}{Maximum back-tracking iterations. Default 50.}
 
 \item{orthogonal}{Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.}
 
@@ -63,7 +63,7 @@ Ignored when \code{nstart > 1}.}
 
 \item{v_every}{Print frequency (every v_every outer iterations). Default 10.}
 
-\item{Lmax}{Clipping bound for Lagrange multipliers. Default 100.}
+\item{Lmax}{(Deprecated) Clipping bound for Lagrange multipliers. Default 1e8.}
 
 \item{c1}{Multiplicative factor for rho increase (must be > 1). Default 10.}
 
@@ -71,8 +71,8 @@ Ignored when \code{nstart > 1}.}
 
 \item{p}{Exponent in Qp (must be in (0,1]). Closed form solutions for 1/2, 2/3, 1. Default 1.}
 
-\item{nstart}{Number of random starts. Default 1 (no random restarts).
-When \code{nstart > 1}, each start uses a random orthogonal rotation of \code{A}
+\item{nstart}{Number of random starts. Default 0 (no random restarts).
+When \code{nstart > 0}, each start uses a random orthogonal rotation of \code{A}
 and the solution with the smallest objective value is returned.}
 
 \item{ostart}{Logical; orthogonal rotation for random starts? Default TRUE.}

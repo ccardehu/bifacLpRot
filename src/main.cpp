@@ -5,10 +5,12 @@
 using namespace Rcpp;
 using namespace arma;
 
+// Non-smooth part of the Augmented Lagrangian
 double Qp(arma::mat& B, double p) {
     return arma::accu(arma::pow(arma::abs(B.cols(1, B.n_cols - 1)), p));
 }
 
+// Smooth part of the Augmented Lagrangian
 double obj2(arma::mat& B, arma::mat& R, arma::mat& L,
             const arma::mat& AAt, double rho1) {
 
@@ -24,7 +26,7 @@ double obj2(arma::mat& B, arma::mat& R, arma::mat& L,
 
 arma::mat gradB(arma::mat& B, arma::mat& R, arma::mat& L,
                 const arma::mat& AAt, double rho1){
-    if (arma::abs(B).max() > 1e4) {
+    if (arma::abs(B).max() > 1e9) {
         Rcpp::stop("B update diverged. Reduce penalty (rho) or step size (t)");
     }
     arma::mat Phi = R*R.t();
@@ -211,7 +213,7 @@ void fixB_internal(arma::mat& B,
     }
     R.each_col() %= signs;
     R.each_row() %= signs.t();
-    fixPhi(R);
+    // fixPhi(R);
     // R.diag().ones();
 }
 
@@ -235,8 +237,7 @@ void fixB(arma::mat& B,
          arma::mat Ri(Rmat.begin(), Rmat.nrow(), Rmat.ncol(), false, true);
          Ri.each_col() %= signs;
          Ri.each_row() %= signs.t();
-         fixPhi(Ri);
-         // Ri.diag().ones();
+         // fixPhi(Ri);
      }
  }
 
@@ -246,9 +247,9 @@ arma::vec freeR(arma::mat& R) {
     return sub.elem(arma::trimatl_ind(arma::size(sub)));
 }
 
-void bt4B(arma::mat& B, arma::mat& Bn, arma::mat& R, arma::mat& L, //arma::vec& mu,
-          const arma::mat& AAt, double rho1, //double rho2,
-          arma::mat& grad, double& t, double p, // arma::vec& ihess: to include if active
+void bt4B(arma::mat& B, arma::mat& Bn, arma::mat& R, arma::mat& L,
+          const arma::mat& AAt, double rho1,
+          arma::mat& grad, double& t, double p,
           const std::function<arma::mat(arma::mat, arma::vec)>& ProxB,
           const int maxit_bt = 20, const double beta = 0.5) {
 
@@ -256,12 +257,10 @@ void bt4B(arma::mat& B, arma::mat& Bn, arma::mat& R, arma::mat& L, //arma::vec& 
     arma::mat Ph = R * R.t();
     double Qp_old = Qp(B,p);
     arma::vec lam(B.n_elem - B.n_rows, arma::fill::value(t));
-    // lam *% ihess; // if ihess is active, works for ProxB
 
     for (int i = 0; i < maxit_bt; ++i) {
         Bn = B - t * grad;
         Bn.cols(1, B.n_cols - 1) = ProxB(Bn.cols(1, B.n_cols - 1), lam);
-        // stdM(Bn) ;
 
         // Quadratic upper bound check smooth h(B,Phi) when p == 1 (i.e., convex)
         arma::mat diff = Bn - B;
@@ -315,11 +314,11 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
                    Rcpp::Nullable<arma::mat> Phistart_ = R_NilValue,
                    double rho = 10,
                    double t = 1e-3,
-                   int maxit_ou = 5000, int maxit_in = 300, int maxit_bt = 20,
+                   int maxit_ou = 5000, int maxit_in = 500, int maxit_bt = 50,
                    bool orthogonal = false,
                    double tol1 = 1e-4, double tol2 = 1e-2, double tol3 = 1e-3,
                    bool verbose = true, int v_every = 10,
-                   double Lmax = 100.0, double c1 = 10, double c2 = 0.25,
+                   double Lmax = 1e3, double c1 = 10, double c2 = 0.25,
                    double p = 1) {
 
     // Input validation
@@ -345,12 +344,12 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
     // Number of parameters (for scaling)
     int NR = orthogonal ? 0 : (static_cast<int>(freeR(R).n_elem) - 1);
     int NP = static_cast<int>(B.n_elem) + NR;
-    int NJ = B.n_rows * (B.n_rows + 1)/2;
+    // int NJ = B.n_rows * (B.n_rows + 1)/2;
 
     // const arma::mat Kpq = commutation_matrix(B.n_rows, B.n_cols);
     const arma::mat AAt = A0 * Phi0 * A0.t();
     double outn = Qp(B,p);
-    double froAAt = arma::norm(AAt,"fro");
+    // double froAAt = arma::norm(AAt,"fro");
 
     if (verbose) {
         Rcpp::Rcout << "\n Qp(B) (iter: 0): " << std::fixed << std::setprecision(3) << outn;
@@ -424,9 +423,9 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
         // Update Lagrange multipliers
         L += rho * (AAt - B * Phi * B.t());
         L = 0.5 * (L + L.t());
-        L = arma::clamp(L, -Lmax, Lmax);
-        arma::uvec idL = arma::find(arma::abs(L) == Lmax);
-        L(idL).fill(0.0);
+        // L = arma::clamp(L, -Lmax, Lmax);
+        // arma::uvec idL = arma::find(arma::abs(L) == Lmax);
+        // L(idL).fill(0.0);
         outn = Qp(B,p);
 
         if (verbose && (i % v_every == 0)) {
@@ -438,14 +437,14 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
         stopC1 = (arma::accu(arma::square(B - Bo)) + critR1) / NP;
         double resid_new = arma::norm(AAt - B * Phi * B.t(), "fro");
 
-        if ((std::sqrt(stopC1) < tol1) && (resid_new/froAAt < tol2)){
+        if ((std::sqrt(stopC1) < tol1) && (resid_new < tol2)){
             converged = true;
             break;
         }
 
         // Adaptive rho update
         double resid_old = arma::norm(AAt - Bo * Phio * Bo.t(), "fro");
-        if (resid_new > c2 * resid_old) rho = std::min(rho*c1, 1e4);
+        if (resid_new > c2 * resid_old) rho = std::min(rho*c1, 1e9);
     }
 
     // Final sign fix
