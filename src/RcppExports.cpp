@@ -34,8 +34,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // ALM_cpp
-Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_, Rcpp::Nullable<arma::mat> Phi0_, Rcpp::Nullable<arma::mat> Bstart_, Rcpp::Nullable<arma::mat> Phistart_, double rho, double t, int maxit_ou, int maxit_in, int maxit_bt, bool orthogonal, double tol1, double tol2, double tol3, bool verbose, int v_every, double Lmax, double c1, double c2, double p);
-RcppExport SEXP _bifacLpRot_ALM_cpp(SEXP A0_SEXP, SEXP Phi0_SEXP, SEXP Bstart_SEXP, SEXP Phistart_SEXP, SEXP rhoSEXP, SEXP tSEXP, SEXP maxit_ouSEXP, SEXP maxit_inSEXP, SEXP maxit_btSEXP, SEXP orthogonalSEXP, SEXP tol1SEXP, SEXP tol2SEXP, SEXP tol3SEXP, SEXP verboseSEXP, SEXP v_everySEXP, SEXP LmaxSEXP, SEXP c1SEXP, SEXP c2SEXP, SEXP pSEXP) {
+Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_, Rcpp::Nullable<arma::mat> Phi0_, Rcpp::Nullable<arma::mat> Bstart_, Rcpp::Nullable<arma::mat> Phistart_, double rho, double t, int maxit_ou, int maxit_in, int maxit_bt, bool orthogonal, double tol1, double tol2, double tol3, bool verbose, int v_every, double c1, double c2, double p, const double rho_max, const double delta);
+RcppExport SEXP _bifacLpRot_ALM_cpp(SEXP A0_SEXP, SEXP Phi0_SEXP, SEXP Bstart_SEXP, SEXP Phistart_SEXP, SEXP rhoSEXP, SEXP tSEXP, SEXP maxit_ouSEXP, SEXP maxit_inSEXP, SEXP maxit_btSEXP, SEXP orthogonalSEXP, SEXP tol1SEXP, SEXP tol2SEXP, SEXP tol3SEXP, SEXP verboseSEXP, SEXP v_everySEXP, SEXP c1SEXP, SEXP c2SEXP, SEXP pSEXP, SEXP rho_maxSEXP, SEXP deltaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -54,11 +54,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type tol3(tol3SEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< int >::type v_every(v_everySEXP);
-    Rcpp::traits::input_parameter< double >::type Lmax(LmaxSEXP);
     Rcpp::traits::input_parameter< double >::type c1(c1SEXP);
     Rcpp::traits::input_parameter< double >::type c2(c2SEXP);
     Rcpp::traits::input_parameter< double >::type p(pSEXP);
-    rcpp_result_gen = Rcpp::wrap(ALM_cpp(A0_, Phi0_, Bstart_, Phistart_, rho, t, maxit_ou, maxit_in, maxit_bt, orthogonal, tol1, tol2, tol3, verbose, v_every, Lmax, c1, c2, p));
+    Rcpp::traits::input_parameter< const double >::type rho_max(rho_maxSEXP);
+    Rcpp::traits::input_parameter< const double >::type delta(deltaSEXP);
+    rcpp_result_gen = Rcpp::wrap(ALM_cpp(A0_, Phi0_, Bstart_, Phistart_, rho, t, maxit_ou, maxit_in, maxit_bt, orthogonal, tol1, tol2, tol3, verbose, v_every, c1, c2, p, rho_max, delta));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -66,7 +67,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_bifacLpRot_fixB", (DL_FUNC) &_bifacLpRot_fixB, 2},
     {"_bifacLpRot_freeR", (DL_FUNC) &_bifacLpRot_freeR, 1},
-    {"_bifacLpRot_ALM_cpp", (DL_FUNC) &_bifacLpRot_ALM_cpp, 19},
+    {"_bifacLpRot_ALM_cpp", (DL_FUNC) &_bifacLpRot_ALM_cpp, 20},
     {NULL, NULL, 0}
 };
 

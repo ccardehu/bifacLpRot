@@ -11,15 +11,16 @@
 #' @param maxit_in Maximum inner iterations. Default 500.
 #' @param maxit_bt Maximum back-tracking iterations. Default 50.
 #' @param orthogonal Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.
-#' @param tol1 Convergence tolerance for successive parameter change (outer loop). Default 1e-4.
-#' @param tol2 Convergence tolerance for constraint violation check. Default 1e-2.
-#' @param tol3 Convergence tolerance for successive parameter change (inner loop). Default 1e-3.
+#' @param tol1 Convergence tolerance for average successive parameter change (outer loop). Default 1e-5.
+#' @param tol2 Convergence tolerance for constraint violation check. Default 1e-5.
+#' @param tol3 Convergence tolerance for successive parameter change (inner loop). Default 1e-5.
 #' @param verbose Logical; print progress. Default TRUE.
 #' @param v_every Print frequency (every v_every outer iterations). Default 10.
-#' @param Lmax (Deprecated) Clipping bound for Lagrange multipliers. Default 1e8.
-#' @param c1 Multiplicative factor for rho increase (must be > 1). Default 10.
+#' @param c1 Multiplicative factor for rho increase (must be > 1). Default 4.
 #' @param c2 Threshold for rho update (must be in (0,1)). Default 0.25.
 #' @param p Exponent in Qp (must be in (0,1]). Closed form solutions for 1/2, 2/3, 1. Default 1.
+#' @param rho_max Maximum value for the penalty parameter. Default 1e6.
+#' @param delta Gap in back-tracking step (must be in (0,1)). Default 0.1.
 #' @param nstart Number of random starts. Default 0 (no random restarts).
 #'   When \code{nstart > 0}, each start uses a random orthogonal rotation of \code{A}
 #'   and the solution with the smallest objective value is returned.
@@ -42,9 +43,11 @@
 #'   \item \code{converged}: Logical; TRUE if converged before maxit_ou
 #'   \item \code{time}: Wall clock computation time (in seconds)
 #'   \item \code{nstart}: Number of random starts used
-#'   \item \code{all.obje}: Vector of objective values Qp(B) from all starts (only when \code{nstart > 1})
-#'   \item \code{all.cons}: Vector of constraint values h(B,Phi) from all starts (only when \code{nstart > 1})
-#'   \item \code{all.conv}: Vector of boolean for convergence of all starts (only when \code{nstart > 1})
+#'   \item \code{all.obje}: Vector of objective values Qp(B) from all starts (only when \code{nstart > 0})
+#'   \item \code{all.cons}: Vector of constraint values h(B,Phi) from all starts (only when \code{nstart > 0})
+#'   \item \code{all.conv}: Vector of boolean for convergence of all starts (only when \code{nstart > 0})
+#'   \item \code{all.feas}: Vector of boolean for feasibility h(B,Phi) < tol2 (only when \code{nstart > 0})
+#'   \item \code{all.seed}: Vector of integer for random seeds (only when \code{nstart > 0})
 #' }
 #'
 #' @examples
@@ -73,11 +76,11 @@
 #' @importFrom Rcpp sourceCpp
 bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                        rho = 10, t = 1e-3,
-                       maxit_ou = 5000, maxit_in = 500, maxit_bt = 50,
+                       maxit_ou = 5e3, maxit_in = 5e2, maxit_bt = 5e1,
                        orthogonal = FALSE,
-                       tol1 = 1e-4, tol2 = 1e-2, tol3 = 1e-3,
+                       tol1 = 1e-5, tol2 = 1e-5, tol3 = 1e-5,
                        verbose = TRUE, v_every = 10L,
-                       Lmax = 1e3, c1 = 10, c2 = 0.25, p = 1,
+                       c1 = 4, c2 = 0.25, p = 1, rho_max = 1e6, delta = .01,
                        nstart = 0L, ostart = TRUE, seed = NULL, ncores = 1,
                        refine = F) {
 
@@ -95,7 +98,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     nstart = as.integer(nstart)
     if (nstart < 0L) stop("nstart must be >= 0")
 
-    # Auto-detect cores when nstart > 1 and ncores not specified
+    # Auto-detect cores when nstart > 0 and ncores not specified
     if (nstart > 0L && is.null(ncores)) {
         if (requireNamespace("future", quietly = TRUE)) {
             ncores <- future::availableCores() - 2
@@ -134,10 +137,11 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
             tol3 = tol3,
             verbose = verbose,
             v_every = v_every,
-            Lmax = Lmax,
             c1 = c1,
             c2 = c2,
-            p = p
+            p = p,
+            rho_max = rho_max,
+            delta = delta
         )
         result$nstart = 0L
         return(result)
@@ -201,10 +205,11 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                 tol3 = tol3,
                 verbose = FALSE,
                 v_every = v_every,
-                Lmax = Lmax,
                 c1 = c1,
                 c2 = c2,
-                p = p
+                p = p,
+                rho_max = rho_max,
+                delta = delta
             )
         },
         error = function(e) {
@@ -240,8 +245,6 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     obj_vals = vapply(results, function(r) r$obj.end, numeric(1))
     con_vals = vapply(results, function(r) r$cons.end, numeric(1))
     conv_all = vapply(results, function(r) r$converged, logical(1))
-    # NJ = (nrow(A) * (nrow(A) + 1) / 2)
-    # froAAt = sqrt(sum(A^2))
 
     feas_vals = con_vals #/ froAAt # NJ
     feasible  = feas_vals < tol2
@@ -273,13 +276,6 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
             else "none feasible"))
     }
 
-    # if (verbose) {
-    #     message(sprintf("Best start: %i (out of %i, %.0f%% converged within maxit_ou) \nMin. Qp(B): %.3f; h(B,Phi): %.3f | Range Qp: [%.3f, %.3f] | Range h: [%.3f, %.3f]",
-    #                     best_idx, nstart, 100 * sum(conv_all)/length(conv_all),
-    #                     obj_vals[best_idx], con_vals[best_idx],
-    #                     min(obj_vals), max(obj_vals), min(con_vals), max(con_vals)))
-    # }
-
     # Refinement ----
     refined = FALSE
     if (refine && (!best$converged || !feasible[best_idx])){
@@ -300,10 +296,11 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                 tol3 = tol3,
                 verbose = FALSE,
                 v_every = v_every,
-                Lmax = Lmax,
                 c1 = c1,
                 c2 = c2,
-                p = p
+                p = p,
+                rho_max = rho_max,
+                delta = delta
             )},
             error = function(e) {
                 warning(sprintf("Refinement failed (%s); returning best multi-start solution.",
@@ -338,6 +335,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     best$all.obje = obj_vals
     best$all.cons = con_vals
     best$all.conv = conv_all
+    best$all.feas = feasible
     best$time = difftime(toc,tic,units = "secs")
     best$seeds = seeds
     return(best)

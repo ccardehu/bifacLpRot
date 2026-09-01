@@ -15,15 +15,16 @@ bifactorLp(
   maxit_in = 500,
   maxit_bt = 50,
   orthogonal = FALSE,
-  tol1 = 1e-04,
-  tol2 = 0.01,
-  tol3 = 0.001,
+  tol1 = 1e-05,
+  tol2 = 1e-05,
+  tol3 = 1e-05,
   verbose = TRUE,
   v_every = 10L,
-  Lmax = 1000,
-  c1 = 10,
+  c1 = 4,
   c2 = 0.25,
   p = 1,
+  rho_max = 1e+06,
+  delta = 0.01,
   nstart = 0L,
   ostart = TRUE,
   seed = NULL,
@@ -53,23 +54,25 @@ Ignored when \code{nstart > 1}.}
 
 \item{orthogonal}{Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.}
 
-\item{tol1}{Convergence tolerance for successive parameter change (outer loop). Default 1e-4.}
+\item{tol1}{Convergence tolerance for average successive parameter change (outer loop). Default 1e-5.}
 
-\item{tol2}{Convergence tolerance for constraint violation check. Default 1e-2.}
+\item{tol2}{Convergence tolerance for constraint violation check. Default 1e-5.}
 
-\item{tol3}{Convergence tolerance for successive parameter change (inner loop). Default 1e-3.}
+\item{tol3}{Convergence tolerance for successive parameter change (inner loop). Default 1e-5.}
 
 \item{verbose}{Logical; print progress. Default TRUE.}
 
 \item{v_every}{Print frequency (every v_every outer iterations). Default 10.}
 
-\item{Lmax}{(Deprecated) Clipping bound for Lagrange multipliers. Default 1e8.}
-
-\item{c1}{Multiplicative factor for rho increase (must be > 1). Default 10.}
+\item{c1}{Multiplicative factor for rho increase (must be > 1). Default 4.}
 
 \item{c2}{Threshold for rho update (must be in (0,1)). Default 0.25.}
 
 \item{p}{Exponent in Qp (must be in (0,1]). Closed form solutions for 1/2, 2/3, 1. Default 1.}
+
+\item{rho_max}{Maximum value for the penalty parameter. Default 1e6.}
+
+\item{delta}{Gap in back-tracking step (must be in (0,1)). Default 0.1.}
 
 \item{nstart}{Number of random starts. Default 0 (no random restarts).
 When \code{nstart > 0}, each start uses a random orthogonal rotation of \code{A}
@@ -98,9 +101,11 @@ A list containing:
 \item \code{converged}: Logical; TRUE if converged before maxit_ou
 \item \code{time}: Wall clock computation time (in seconds)
 \item \code{nstart}: Number of random starts used
-\item \code{all.obje}: Vector of objective values Qp(B) from all starts (only when \code{nstart > 1})
-\item \code{all.cons}: Vector of constraint values h(B,Phi) from all starts (only when \code{nstart > 1})
-\item \code{all.conv}: Vector of boolean for convergence of all starts (only when \code{nstart > 1})
+\item \code{all.obje}: Vector of objective values Qp(B) from all starts (only when \code{nstart > 0})
+\item \code{all.cons}: Vector of constraint values h(B,Phi) from all starts (only when \code{nstart > 0})
+\item \code{all.conv}: Vector of boolean for convergence of all starts (only when \code{nstart > 0})
+\item \code{all.feas}: Vector of boolean for feasibility h(B,Phi) < tol2 (only when \code{nstart > 0})
+\item \code{all.seed}: Vector of integer for random seeds (only when \code{nstart > 0})
 }
 }
 \description{
