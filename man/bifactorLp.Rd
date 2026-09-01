@@ -11,13 +11,13 @@ bifactorLp(
   Phi_start = NULL,
   rho = 10,
   t = 0.001,
-  maxit_ou = 5000,
-  maxit_in = 500,
-  maxit_bt = 50,
+  maxit_ou = 4000,
+  maxit_in = 400,
+  maxit_bt = 40,
   orthogonal = FALSE,
-  tol1 = 1e-05,
-  tol2 = 1e-05,
-  tol3 = 1e-05,
+  tol1 = 1e-06,
+  tol2 = 1e-06,
+  tol3 = 1e-06,
   verbose = TRUE,
   v_every = 10L,
   c1 = 4,
@@ -46,19 +46,19 @@ Ignored when \code{nstart > 1}.}
 
 \item{t}{Initial step size. Default 1e-3.}
 
-\item{maxit_ou}{Maximum outer iterations. Default 5000.}
+\item{maxit_ou}{Maximum outer iterations. Default 4000.}
 
-\item{maxit_in}{Maximum inner iterations. Default 500.}
+\item{maxit_in}{Maximum inner iterations. Default 400.}
 
-\item{maxit_bt}{Maximum back-tracking iterations. Default 50.}
+\item{maxit_bt}{Maximum back-tracking iterations. Default 40.}
 
 \item{orthogonal}{Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.}
 
-\item{tol1}{Convergence tolerance for average successive parameter change (outer loop). Default 1e-5.}
+\item{tol1}{Convergence tolerance for average successive parameter change (outer loop). Default 1e-6.}
 
-\item{tol2}{Convergence tolerance for constraint violation check. Default 1e-5.}
+\item{tol2}{Convergence tolerance for constraint violation check. Default 1e-6.}
 
-\item{tol3}{Convergence tolerance for successive parameter change (inner loop). Default 1e-5.}
+\item{tol3}{Convergence tolerance for successive parameter change (inner loop). Default 1e-6.}
 
 \item{verbose}{Logical; print progress. Default TRUE.}
 
