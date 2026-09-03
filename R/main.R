@@ -11,9 +11,9 @@
 #' @param maxit_in Maximum inner iterations. Default 400.
 #' @param maxit_bt Maximum back-tracking iterations. Default 40.
 #' @param orthogonal Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.
-#' @param tol1 Convergence tolerance for average successive parameter change (outer loop). Default 1e-6.
-#' @param tol2 Convergence tolerance for constraint violation check. Default 1e-6.
-#' @param tol3 Convergence tolerance for successive parameter change (inner loop). Default 1e-6.
+#' @param tol1 Convergence tolerance for average successive parameter change (outer loop). Default 1e-5.
+#' @param tol2 Convergence tolerance for constraint violation check. Default 1e-5.
+#' @param tol3 Convergence tolerance for successive parameter change (inner loop). Default 1e-5.
 #' @param verbose Logical; print progress. Default TRUE.
 #' @param v_every Print frequency (every v_every outer iterations). Default 10.
 #' @param c1 Multiplicative factor for rho increase (must be > 1). Default 4.
@@ -78,7 +78,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                        rho = 10, t = 1e-3,
                        maxit_ou = 4e3, maxit_in = 4e2, maxit_bt = 4e1,
                        orthogonal = FALSE,
-                       tol1 = 1e-6, tol2 = 1e-6, tol3 = 1e-6,
+                       tol1 = 1e-5, tol2 = 1e-5, tol3 = 1e-5,
                        verbose = TRUE, v_every = 10L,
                        c1 = 4, c2 = 0.25, p = 1, rho_max = 1e6, delta = .01,
                        nstart = 0L, ostart = TRUE, seed = NULL, ncores = 1,

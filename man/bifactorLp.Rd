@@ -15,9 +15,9 @@ bifactorLp(
   maxit_in = 400,
   maxit_bt = 40,
   orthogonal = FALSE,
-  tol1 = 1e-06,
-  tol2 = 1e-06,
-  tol3 = 1e-06,
+  tol1 = 1e-05,
+  tol2 = 1e-05,
+  tol3 = 1e-05,
   verbose = TRUE,
   v_every = 10L,
   c1 = 4,
@@ -54,11 +54,11 @@ Ignored when \code{nstart > 1}.}
 
 \item{orthogonal}{Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.}
 
-\item{tol1}{Convergence tolerance for average successive parameter change (outer loop). Default 1e-6.}
+\item{tol1}{Convergence tolerance for average successive parameter change (outer loop). Default 1e-5.}
 
-\item{tol2}{Convergence tolerance for constraint violation check. Default 1e-6.}
+\item{tol2}{Convergence tolerance for constraint violation check. Default 1e-5.}
 
-\item{tol3}{Convergence tolerance for successive parameter change (inner loop). Default 1e-6.}
+\item{tol3}{Convergence tolerance for successive parameter change (inner loop). Default 1e-5.}
 
 \item{verbose}{Logical; print progress. Default TRUE.}
 

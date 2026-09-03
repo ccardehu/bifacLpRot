@@ -269,7 +269,7 @@ void bt4B(arma::mat& B, arma::mat& Bn, arma::mat& R, arma::mat& L,
         bool descent_ok = true;
         if (std::abs(p - 1.0) >= 1e-10) {
             double Qp_new = Qp(Bn,p);
-            descent_ok = (fnew + Qp_new <= fx + Qp_old + linear + quad);
+            descent_ok = (fnew + Qp_new <= fx + Qp_old);
         }
         if (ista_ok && descent_ok) return;
         t *= 0.5;
