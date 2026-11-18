@@ -2,5 +2,6 @@
 
 export(bifactorLp)
 export(fixB)
+export(kappa0)
 importFrom(Rcpp,sourceCpp)
 useDynLib(bifacLpRot, .registration = TRUE)

@@ -10,6 +10,14 @@ fixB <- function(B, R = NULL) {
     invisible(.Call(`_bifacLpRot_fixB`, B, R))
 }
 
+#' Compute reciprocal L2-condition number
+#'
+#' @param B Loading matrix
+#' @export
+kappa0 <- function(B) {
+    .Call(`_bifacLpRot_kappa0`, B)
+}
+
 freeR <- function(R) {
     .Call(`_bifacLpRot_freeR`, R)
 }

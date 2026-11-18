@@ -234,7 +234,17 @@ void fixB(arma::mat& B,
          Ri.each_row() %= signs.t();
          // fixPhi(Ri);
      }
- }
+}
+
+//' Compute reciprocal L2-condition number
+//'
+//' @param B Loading matrix
+//' @export
+// [[Rcpp::export]]
+double kappa0 (arma::mat& B){
+     arma::vec sv = arma::svd(B);
+     return arma::min(sv)/arma::max(sv);
+}
 
 // [[Rcpp::export]]
 arma::vec freeR(arma::mat& R) {

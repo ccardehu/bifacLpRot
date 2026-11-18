@@ -22,6 +22,17 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// kappa0
+double kappa0(arma::mat& B);
+RcppExport SEXP _bifacLpRot_kappa0(SEXP BSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type B(BSEXP);
+    rcpp_result_gen = Rcpp::wrap(kappa0(B));
+    return rcpp_result_gen;
+END_RCPP
+}
 // freeR
 arma::vec freeR(arma::mat& R);
 RcppExport SEXP _bifacLpRot_freeR(SEXP RSEXP) {
@@ -66,6 +77,7 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_bifacLpRot_fixB", (DL_FUNC) &_bifacLpRot_fixB, 2},
+    {"_bifacLpRot_kappa0", (DL_FUNC) &_bifacLpRot_kappa0, 1},
     {"_bifacLpRot_freeR", (DL_FUNC) &_bifacLpRot_freeR, 1},
     {"_bifacLpRot_ALM_cpp", (DL_FUNC) &_bifacLpRot_ALM_cpp, 20},
     {NULL, NULL, 0}
