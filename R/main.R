@@ -376,8 +376,8 @@ print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, ...) {
     cat("\n")
     print(round(varex, digits))
 
-    n_zero <- sum(abs(L[, -1, drop = FALSE]) < zero_tol)
-    cat("\nExact zeros in group-factor block: ", n_zero, " of ", J * (K - 1),
+    n_zero <- sum(abs(L[, -1, drop = FALSE]) < cutoff)
+    cat("\nLoadings within cut-off in group-factor block: ", n_zero, " of ", J * (K - 1),
         "\n", sep = "")
 
     # --- Phi (oblique only) ---
