@@ -191,49 +191,57 @@ void ProxL(arma::mat& R) {
 //     Phi.diag().ones();
 // }
 
-void ordCol(arma::mat& B){
+arma::uvec ordCol(arma::mat& B){
     arma::rowvec ss = arma::sum(arma::square(B),0);
-    arma::uvec idx = arma::sort_index(ss, "descend");
-    B = B.cols(idx) ;
+    arma::uvec idx = arma::stable_sort_index(ss, "descend");
+    return idx;
 }
 
 void fixB_internal(arma::mat& B,
                    arma::mat& R) {
-    ordCol(B);
-    arma::vec signs(B.n_cols);
+    arma::uvec idx = ordCol(B);
+    B = B.cols(idx);
+    R = R.submat(idx, idx);
+    arma::rowvec signs(B.n_cols);
     for (arma::uword i = 0; i < B.n_cols; ++i) {
         arma::uword max_idx = arma::abs(B.col(i)).index_max();
         signs(i) = (B(max_idx, i) >= 0) ? 1.0 : -1.0;
-        B.col(i) *= signs(i);
     }
-    R.each_col() %= signs;
-    R.each_row() %= signs.t();
-    // fixPhi(R);
-    // R.diag().ones();
+    B.each_row() %= signs;
+    R.each_col() %= signs.t();
+    R.each_row() %= signs;
 }
 
-//' Fix sign indeterminacy in factor loadings (USE WITH CARE)
+//' Fix canonical form of a bi-factor solution
 //'
-//' @param B Loading matrix (modified in place)
-//' @param R Optional correlation matrix (modified in place). Defaults to NULL.
+//' Orders the group-factor columns of \code{B} by decreasing sum of squared
+//' loadings and makes the largest-magnitude loading in each column positive.
+//' The same signed permutation is applied to \code{Phi}, so
+//' \code{B \%*\% Phi \%*\% t(B)} is unchanged.
+//'
+//' @param B Loading matrix (J x K).
+//' @param Phi Optional K x K factor correlation matrix. Defaults to the identity.
+//' @return A list with the transformed loading matrix \code{B} and factor
+//'   correlation matrix \code{Phi}.
 //' @export
 // [[Rcpp::export]]
-void fixB(arma::mat& B,
-          Rcpp::Nullable<Rcpp::NumericMatrix> R = R_NilValue) {
+Rcpp::List fixB(const arma::mat& B,
+             Rcpp::Nullable<Rcpp::NumericMatrix> Phi = R_NilValue) {
+ const arma::uword K = B.n_cols;
+ if (K == 0) Rcpp::stop("B must have at least one column.");
 
-     arma::vec signs(B.n_cols);
-     for (arma::uword i = 0; i < B.n_cols; ++i) {
-         arma::uword max_idx = arma::abs(B.col(i)).index_max();
-         signs(i) = (B(max_idx, i) >= 0) ? 1.0 : -1.0;
-         B.col(i) *= signs(i);
-     }
-     if(R.isNotNull()) {
-         Rcpp::NumericMatrix Rmat(R.get());
-         arma::mat Ri(Rmat.begin(), Rmat.nrow(), Rmat.ncol(), false, true);
-         Ri.each_col() %= signs;
-         Ri.each_row() %= signs.t();
-         // fixPhi(Ri);
-     }
+ arma::mat Bout   = B;
+ arma::mat Phiout = Phi.isNotNull() ? Rcpp::as<arma::mat>(Phi.get())
+     : arma::eye(K, K);
+ if (Phiout.n_rows != K || Phiout.n_cols != K) {
+     Rcpp::stop("Phi must be a %i x %i matrix.",
+                static_cast<int>(K), static_cast<int>(K));
+ }
+
+ fixB_internal(Bout, Phiout);
+
+ return Rcpp::List::create(Rcpp::Named("B")   = Bout,
+                           Rcpp::Named("Phi") = Phiout);
 }
 
 //' Compute reciprocal L2-condition number

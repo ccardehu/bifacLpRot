@@ -1,3 +1,15 @@
+output_bifacLp = function(res, A, p, orthogonal, call) {
+    K <- ncol(res$B)
+    dimnames(res$B) <- list(rownames(A), c("GF", paste0("SF", seq_len(K - 1))))
+    dimnames(res$Phi) <- list(colnames(res$B), colnames(res$B))
+    res$p          <- p
+    res$orthogonal <- orthogonal
+    res$call       <- call
+    class(res)     <- "bifacLpRot"
+    res
+}
+
+
 #' Lp rotation for Generalized Bi-factor Models
 #'
 #' @param A Input factor loading matrix (J x K)
@@ -79,10 +91,9 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                        maxit_ou = 4e3, maxit_in = 4e2, maxit_bt = 4e1,
                        orthogonal = FALSE,
                        tol1 = 1e-5, tol2 = 1e-5, tol3 = 1e-5,
-                       verbose = TRUE, v_every = 10L,
+                       verbose = FALSE, v_every = 10L,
                        c1 = 4, c2 = 0.25, p = 1, rho_max = 1e6, delta = .01,
-                       nstart = 0L, ostart = TRUE, seed = NULL, ncores = 1,
-                       refine = F) {
+                       nstart = 0L, ostart = TRUE, seed = NULL, ncores = 1) {
 
     # Input validation ----
     if(is.null(A)) stop("Factor loading matrix A must be included.")
@@ -97,6 +108,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     v_every = as.integer(v_every)
     nstart = as.integer(nstart)
     if (nstart < 0L) stop("nstart must be >= 0")
+    cl = match.call()
 
     # Auto-detect cores when nstart > 0 and ncores not specified
     if (nstart > 0L && is.null(ncores)) {
@@ -144,7 +156,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
             delta = delta
         )
         result$nstart = 0L
-        return(result)
+        return(output_bifacLp(result, A, p, orthogonal, cl))
     }
 
     # Multiple random starts ----
@@ -157,8 +169,15 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     if (!is.null(seed)) set.seed(seed)
     if(nstart > 1) {
         seeds = sample.int(.Machine$integer.max, nstart)
-    } else{
-        seeds = seed
+    } else {
+        if (is.null(seed)){
+            if (verbose) {
+                message("seed = NULL and Random starts (nstart) = 1. Setting to default seed = 1234")
+            }
+            seeds = 1234
+        } else {
+            seeds = seed
+        }
     }
 
     # Helper: generate one random start matrix
@@ -276,67 +295,102 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
             else "none feasible"))
     }
 
-    # Refinement ----
-    refined = FALSE
-    if (refine && (!best$converged || !feasible[best_idx])){
-        ref = tryCatch({
-            ALM_cpp(
-                A0_ = A,
-                Phi0_ = Phi,
-                Bstart_ = best$B,
-                Phistart_ = best$Phi,
-                rho = best$rho.end,
-                t = t,
-                maxit_ou = maxit_ou,
-                maxit_in = maxit_in,
-                maxit_bt = maxit_bt,
-                orthogonal = orthogonal,
-                tol1 = tol1,
-                tol2 = tol2,
-                tol3 = tol3,
-                verbose = FALSE,
-                v_every = v_every,
-                c1 = c1,
-                c2 = c2,
-                p = p,
-                rho_max = rho_max,
-                delta = delta
-            )},
-            error = function(e) {
-                warning(sprintf("Refinement failed (%s); returning best multi-start solution.",
-                                conditionMessage(e)))
-                NULL
-            })
-
-        if (!is.null(ref)) {
-            ref_feas  = (ref$cons.end) <= tol2 # / NJ / froAAt
-            best_feas = feasible[best_idx]
-            take_ref  =
-                ( ref_feas && !best_feas) ||
-                ( ref_feas &&  best_feas && ref$obj.end  < obj_vals[best_idx]) ||
-                (!ref_feas && !best_feas && ref$cons.end < con_vals[best_idx])
-
-            obj_vals = c(obj_vals, ref$obj.end)
-            con_vals = c(con_vals, ref$cons.end)
-            conv_all = c(conv_all, ref$converged)
-
-            if (take_ref) { best = ref; refined = TRUE }
-            if (verbose) {
-                message(sprintf("Refinement: Qp(B): %.3f; h(B,Phi): %.4f (%s)",
-                                ref$obj.end, ref$cons.end,
-                                if (take_ref) "accepted" else "rejected, unrefined solution returned"))
-            }
-        }
-    }
-
     toc = Sys.time()
     best$nstart = nstart
-    best$refined  = refined
     best$all.obje = obj_vals
     best$all.cons = con_vals
     best$all.conv = conv_all
     best$all.feas = feasible
     best$time = difftime(toc,tic,units = "secs")
     best$seeds = seeds
-    return(best)
+    return(output_bifacLp(best, A, p, orthogonal, cl))
+}
+
+
+.format_p <- function(p) {
+    known <- c(`1` = 1, `2/3` = 2/3, `1/2` = 1/2)
+    hit <- which(abs(p - known) < 1e-10)
+    if (length(hit)) names(known)[hit] else format(signif(p, 3))
+}
+
+#' Print a bi-factor Lp rotation
+#'
+#' @param x A \code{bifacLpRot} object returned by \code{bifactorLp()}.
+#' @param digits Number of decimal places. Default 3.
+#' @param cutoff Loadings with absolute value below \code{cutoff} are shown as
+#'   blanks. Default 0.01 for readability.
+#' @param ... Unused.
+#' @export
+print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, ...) {
+    zero_tol <- sqrt(.Machine$double.eps)
+    orth <- isTRUE(x$orthogonal)
+    L    <- unclass(x$B)
+    J    <- nrow(L)
+    K    <- ncol(L)
+    Phi  <- if (orth || is.null(x$Phi)) diag(K) else x$Phi
+    dimnames(Phi) <- list(colnames(L), colnames(L))
+
+    # --- Convergence header ---
+    multi <- isTRUE(x$nstart > 0)
+    cat(if (orth) "Orthogonal" else "Oblique",
+        " bi-factor Lp rotation (p = ", .format_p(x$p), ")",
+        if (!isTRUE(x$converged)) " NOT", " converged",
+        if (multi) " at lowest minimum.\n" else ".\n", sep = "")
+
+    # --- Random-start diagnostics ---
+    if (multi) {
+        n    <- length(x$all.feas)
+        feas <- x$all.feas
+        conv <- x$all.conv[seq_len(n)]
+        obj  <- x$all.obje[seq_len(n)]
+        cat("Of ", n, " random starts ", round(100 * mean(conv)), "% converged, ",
+            round(100 * mean(feas)), "% feasible", sep = "")
+        if (any(feas)) {
+            q   <- obj[feas]
+            tol <- 1e-4 * max(1, abs(min(q)))     # objective values agree to ~4 digits
+            cat(", ", round(100 * sum(abs(q - min(q)) < tol) / n),
+                "% at the same lowest minimum.\n", sep = "")
+            n_min <- length(unique(round(q / tol)))
+            if (n_min > 1)
+                cat("Feasible starts converged to ", n_min,
+                    " different local minima.\n", sep = "")
+        } else {
+            cat(".\n")
+        }
+    }
+
+    # --- Loadings ---
+    cat(if (multi) "\nLoadings at lowest minimum:\n" else "\nLoadings:\n")
+    fx <- format(round(L, digits))
+    fx[abs(L) < max(cutoff, zero_tol)] <- strrep(" ", nchar(fx[1L]))
+    print(fx, quote = FALSE, right = TRUE)
+
+    # --- Variance explained (same definitions as GPArotation) ---
+    vx <- diag(Phi %*% crossprod(L))          # equals colSums(L^2) when Phi = I
+    names(vx) <- colnames(L)
+    varex <- rbind(`SS loadings` = vx)
+    if (orth) {
+        varex <- rbind(varex, `Proportion Var` = vx / J)
+        if (K > 1) varex <- rbind(varex, `Cumulative Var` = cumsum(vx / J))
+    }
+    cat("\n")
+    print(round(varex, digits))
+
+    n_zero <- sum(abs(L[, -1, drop = FALSE]) < zero_tol)
+    cat("\nExact zeros in group-factor block: ", n_zero, " of ", J * (K - 1),
+        "\n", sep = "")
+
+    # --- Phi (oblique only) ---
+    if (!orth) {
+        cat("\nPhi:\n")
+        print(round(Phi, digits))
+    }
+
+    # --- Solver diagnostics ---
+    cat("\nQp(B): ", format(round(x$obj.end, digits), nsmall = digits),
+        " | ||h(B, Phi)||_F: ", format(x$cons.end, digits = 3, scientific = TRUE),
+        " | outer iterations: ", x$iter.end,
+        " | rho: ", format(x$rho.end, digits = 3), "\n", sep = "")
+
+    invisible(x)
 }

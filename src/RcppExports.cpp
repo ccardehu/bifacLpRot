@@ -12,14 +12,15 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // fixB
-void fixB(arma::mat& B, Rcpp::Nullable<Rcpp::NumericMatrix> R);
-RcppExport SEXP _bifacLpRot_fixB(SEXP BSEXP, SEXP RSEXP) {
+Rcpp::List fixB(const arma::mat& B, Rcpp::Nullable<Rcpp::NumericMatrix> Phi);
+RcppExport SEXP _bifacLpRot_fixB(SEXP BSEXP, SEXP PhiSEXP) {
 BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat& >::type B(BSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type R(RSEXP);
-    fixB(B, R);
-    return R_NilValue;
+    Rcpp::traits::input_parameter< const arma::mat& >::type B(BSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type Phi(PhiSEXP);
+    rcpp_result_gen = Rcpp::wrap(fixB(B, Phi));
+    return rcpp_result_gen;
 END_RCPP
 }
 // kappa0

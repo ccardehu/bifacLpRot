@@ -28,8 +28,7 @@ bifactorLp(
   nstart = 0L,
   ostart = TRUE,
   seed = NULL,
-  ncores = 1,
-  refine = F
+  ncores = 1
 )
 }
 \arguments{

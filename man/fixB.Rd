@@ -2,15 +2,22 @@
 % Please edit documentation in R/RcppExports.R
 \name{fixB}
 \alias{fixB}
-\title{Fix sign indeterminacy in factor loadings (USE WITH CARE)}
+\title{Fix canonical form of a bi-factor solution}
 \usage{
-fixB(B, R = NULL)
+fixB(B, Phi = NULL)
 }
 \arguments{
-\item{B}{Loading matrix (modified in place)}
+\item{B}{Loading matrix (J x K).}
 
-\item{R}{Optional correlation matrix (modified in place). Defaults to NULL.}
+\item{Phi}{Optional K x K factor correlation matrix. Defaults to the identity.}
+}
+\value{
+A list with the transformed loading matrix \code{B} and factor
+correlation matrix \code{Phi}.
 }
 \description{
-Fix sign indeterminacy in factor loadings (USE WITH CARE)
+Orders the group-factor columns of \code{B} by decreasing sum of squared
+loadings and makes the largest-magnitude loading in each column positive.
+The same signed permutation is applied to \code{Phi}, so
+\code{B \%*\% Phi \%*\% t(B)} is unchanged.
 }
