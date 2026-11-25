@@ -1,3 +1,5 @@
+# Main functions ----
+
 output_bifacLp = function(res, A, p, orthogonal, call) {
     K <- ncol(res$B)
     dimnames(res$B) <- list(rownames(A), c("GF", paste0("SF", seq_len(K - 1))))
@@ -23,18 +25,18 @@ output_bifacLp = function(res, A, p, orthogonal, call) {
 #' @param maxit_in Maximum inner iterations. Default 400.
 #' @param maxit_bt Maximum back-tracking iterations. Default 40.
 #' @param orthogonal Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.
-#' @param tol1 Convergence tolerance for average successive parameter change (outer loop). Default 1e-5.
-#' @param tol2 Convergence tolerance for constraint violation check. Default 1e-5.
-#' @param tol3 Convergence tolerance for successive parameter change (inner loop). Default 1e-5.
-#' @param verbose Logical; print progress. Default TRUE.
+#' @param tol1 Convergence tol. for avg. successive parameter change (outer loop). Default 1e-5.
+#' @param tol2 Convergence tol. for constraint violation check. Default 1e-5.
+#' @param tol3 Convergence tol. for successive parameter change (inner loop). Default 1e-5.
+#' @param verbose Logical; print progress. Default FALSE.
 #' @param v_every Print frequency (every v_every outer iterations). Default 10.
 #' @param c1 Multiplicative factor for rho increase (must be > 1). Default 4.
 #' @param c2 Threshold for rho update (must be in (0,1)). Default 0.25.
 #' @param p Exponent in Qp (must be in (0,1]). Closed form solutions for 1/2, 2/3, 1. Default 1.
-#' @param rho_max Maximum value for the penalty parameter. Default 1e6.
+#' @param rho_max Maximum value for the penalty parameter. Default 1e8.
 #' @param delta Gap in back-tracking step (must be in (0,1)). Default 0.1.
 #' @param nstart Number of random starts. Default 0 (no random restarts).
-#'   When \code{nstart > 0}, each start uses a random orthogonal rotation of \code{A}
+#'   When \code{nstart > 0}, each start uses a random orthogonal rotation of group-block in \code{A}
 #'   and the solution with the smallest objective value is returned.
 #' @param ostart Logical; orthogonal rotation for random starts? Default TRUE.
 #' @param seed Optional integer seed for reproducibility of random starts. Default NULL.
@@ -92,7 +94,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                        orthogonal = FALSE,
                        tol1 = 1e-5, tol2 = 1e-5, tol3 = 1e-5,
                        verbose = FALSE, v_every = 10L,
-                       c1 = 4, c2 = 0.25, p = 1, rho_max = 1e6, delta = .01,
+                       c1 = 4, c2 = 0.25, p = 1, rho_max = 1e8, delta = .01,
                        nstart = 0L, ostart = TRUE, seed = NULL, ncores = 1) {
 
     # Input validation ----
@@ -161,7 +163,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 
     # Multiple random starts ----
     if (is.null(B_start)) {
-        message(sprintf("B_start is NULL; (nstart = %d) random orthogonal bi-factor rotations of initial factor loading matrix used as starting points.", nstart))
+        if(verbose) message(sprintf("B_start is NULL; (nstart = %d) random orthogonal bi-factor rotations of initial factor loading matrix used as starting points.", nstart))
         B_start = as.matrix(A)
     }
 
@@ -195,7 +197,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
             Tr = rbind(c(1, rep(0, K)), cbind(rep(0, K), Tr))
         } else {
             d = sqrt(colSums(Z^2)) #sqrt(colSums(Z^2))
-            Tr = Z /d #%*% diag(1/d)
+            Tr = sweep(Z, 2, sqrt(colSums(Z^2)), "/") # Z /d #%*% diag(1/d)
             Tr = rbind(c(1, rep(0, K)), cbind(rep(0, K), Tr))
         }
         A %*% Tr
@@ -307,6 +309,8 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 }
 
 
+# Methods ----
+
 .format_p <- function(p) {
     known <- c(`1` = 1, `2/3` = 2/3, `1/2` = 1/2)
     hit <- which(abs(p - known) < 1e-10)
@@ -319,14 +323,16 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 #' @param digits Number of decimal places. Default 3.
 #' @param cutoff Loadings with absolute value below \code{cutoff} are shown as
 #'   blanks. Default 0.01 for readability.
+#' @param colord (Optional) Custom order for columns
 #' @param ... Unused.
 #' @export
-print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, ...) {
+print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, colord = NULL, ...) {
     zero_tol <- sqrt(.Machine$double.eps)
     orth <- isTRUE(x$orthogonal)
     L    <- unclass(x$B)
     J    <- nrow(L)
     K    <- ncol(L)
+    if(is.null(colord)) colord = 1:K
     Phi  <- if (orth || is.null(x$Phi)) diag(K) else x$Phi
     dimnames(Phi) <- list(colnames(L), colnames(L))
 
@@ -347,7 +353,7 @@ print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, ...) {
             round(100 * mean(feas)), "% feasible", sep = "")
         if (any(feas)) {
             q   <- obj[feas]
-            tol <- 1e-4 * max(1, abs(min(q)))     # objective values agree to ~4 digits
+            tol <- 1e-3 * max(1, abs(min(q)))     # objective values agree to ~3 digits
             cat(", ", round(100 * sum(abs(q - min(q)) < tol) / n),
                 "% at the same lowest minimum.\n", sep = "")
             n_min <- length(unique(round(q / tol)))
@@ -361,13 +367,13 @@ print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, ...) {
 
     # --- Loadings ---
     cat(if (multi) "\nLoadings at lowest minimum:\n" else "\nLoadings:\n")
-    fx <- format(round(L, digits))
+    fx <- format(round(L[,colord], digits))
     fx[abs(L) < max(cutoff, zero_tol)] <- strrep(" ", nchar(fx[1L]))
     print(fx, quote = FALSE, right = TRUE)
 
     # --- Variance explained (same definitions as GPArotation) ---
-    vx <- diag(Phi %*% crossprod(L))          # equals colSums(L^2) when Phi = I
-    names(vx) <- colnames(L)
+    vx <- diag(Phi[colord,colord] %*% crossprod(L[,colord]))          # equals colSums(L^2) when Phi = I
+    names(vx) <- colnames(L[,colord])
     varex <- rbind(`SS loadings` = vx)
     if (orth) {
         varex <- rbind(varex, `Proportion Var` = vx / J)
@@ -376,21 +382,85 @@ print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, ...) {
     cat("\n")
     print(round(varex, digits))
 
-    n_zero <- sum(abs(L[, -1, drop = FALSE]) < cutoff)
+    n_zero <- sum(abs(L[,colord][, -1, drop = FALSE]) < cutoff)
     cat("\nLoadings within cut-off in group-factor block: ", n_zero, " of ", J * (K - 1),
         "\n", sep = "")
 
     # --- Phi (oblique only) ---
     if (!orth) {
         cat("\nPhi:\n")
-        print(round(Phi, digits))
+        print(round(Phi[colord,colord], digits))
     }
 
     # --- Solver diagnostics ---
     cat("\nQp(B): ", format(round(x$obj.end, digits), nsmall = digits),
         " | ||h(B, Phi)||_F: ", format(x$cons.end, digits = 3, scientific = TRUE),
         " | outer iterations: ", x$iter.end,
-        " | rho: ", format(x$rho.end, digits = 3), "\n", sep = "")
+        " | final rho: ", format(x$rho.end, digits = 3), "\n", sep = "")
 
     invisible(x)
+}
+
+# Auxiliary functions ----
+
+#' Generate a population bi-factor loading matrix
+#'
+#' @param P Number of items.
+#' @param K Total number of factors (1 general + K - 1 group factors).
+#' @param type One of "sparse", "cluster", or "mix".
+#' @param prop Logical; if TRUE, proportionality constraints are (approximately) satisfied.
+#' @param n_simple Minimum number of simple items per group factor, i.e.
+#'   items that load on the general factor and on exactly one group factor.
+#' @param overlap For type = "mix": number of items shared by each pair of
+#'   adjacent blocks.
+#' @param p_sparse For type = "sparse": probability that a non-anchor group
+#'   loading is non-zero.
+#' @param seed Optional integer seed.
+#' @return A P x K loading matrix; column 1 is the general factor.
+#' @export
+sim_Astar <- function(P, K, type = c("sparse", "cluster", "mix"),
+                      load_floor = 0.0, load_ceil = 2.0,
+                      prop = FALSE, n_simple = 3L, overlap = 2L,
+                      p_sparse = 1/3, seed = NULL) {
+    type <- match.arg(type)
+    G <- K - 1L  # number of group factors
+    stopifnot(K >= 2, n_simple >= 1, P >= n_simple * G)
+    if (!is.null(seed)) set.seed(seed)
+
+    gen_rng <- if (prop) c(0.5*load_ceil, load_ceil) else c(load_floor, load_ceil)
+    grp_rng <- if (prop) c(0.25*load_ceil, 0.5*load_ceil) else c(load_floor, load_ceil)
+
+    # Support of the group-factor block (P x G, logical) ----
+    S <- matrix(FALSE, P, G)
+    if (type == "sparse") {
+        # First n_simple * G rows are anchors: n_simple simple items per group
+        anchors <- seq_len(n_simple * G)
+        S[cbind(anchors, rep(seq_len(G), each = n_simple))] <- TRUE
+        rest <- setdiff(seq_len(P), anchors)
+        S[rest, ] <- stats::rbinom(length(rest) * G, 1, p_sparse) == 1
+    } else {
+        # Contiguous blocks; for "mix", adjacent blocks share `overlap` items
+        cuts <- round(seq(0, P, length.out = G + 1))
+        ext_lo <- if (type == "mix") ceiling(overlap / 2) else 0L
+        ext_hi <- if (type == "mix") floor(overlap / 2)   else 0L
+        for (g in seq_len(G)) {
+            lo <- max(1L, cuts[g] + 1L - if (g > 1) ext_lo else 0L)
+            hi <- min(P,  cuts[g + 1]  + if (g < G) ext_hi else 0L)
+            S[lo:hi, g] <- TRUE
+        }
+    }
+
+    # Check the simple-item requirement ----
+    simple   <- rowSums(S) == 1L
+    n_simple_g <- colSums(S & simple)
+    if (any(n_simple_g < n_simple)) {
+        stop(sprintf("Group factor(s) %s have fewer than %d simple items; increase P or reduce overlap.",
+                     paste(which(n_simple_g < n_simple), collapse = ", "), n_simple))
+    }
+
+    # Draw loadings on the support ----
+    A <- matrix(0, P, K)
+    A[, 1] <- stats::runif(P, gen_rng[1], gen_rng[2])
+    A[, -1][S] <- stats::runif(sum(S), grp_rng[1], grp_rng[2])
+    A
 }

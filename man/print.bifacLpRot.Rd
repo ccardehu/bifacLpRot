@@ -4,7 +4,7 @@
 \alias{print.bifacLpRot}
 \title{Print a bi-factor Lp rotation}
 \usage{
-\method{print}{bifacLpRot}(x, digits = 3L, cutoff = 0, ...)
+\method{print}{bifacLpRot}(x, digits = 3L, cutoff = 0.01, colord = NULL, ...)
 }
 \arguments{
 \item{x}{A \code{bifacLpRot} object returned by \code{bifactorLp()}.}
@@ -12,7 +12,9 @@
 \item{digits}{Number of decimal places. Default 3.}
 
 \item{cutoff}{Loadings with absolute value below \code{cutoff} are shown as
-blanks. Default 0, so only exact zeros are blank.}
+blanks. Default 0.01 for readability.}
+
+\item{colord}{(Optional) Custom order for columns}
 
 \item{...}{Unused.}
 }

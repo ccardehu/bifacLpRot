@@ -198,18 +198,18 @@ arma::uvec ordCol(arma::mat& B){
 }
 
 void fixB_internal(arma::mat& B,
-                   arma::mat& R) {
+                   arma::mat& Phi) {
     arma::uvec idx = ordCol(B);
     B = B.cols(idx);
-    R = R.submat(idx, idx);
+    Phi = Phi.submat(idx, idx);
     arma::rowvec signs(B.n_cols);
     for (arma::uword i = 0; i < B.n_cols; ++i) {
         arma::uword max_idx = arma::abs(B.col(i)).index_max();
         signs(i) = (B(max_idx, i) >= 0) ? 1.0 : -1.0;
     }
     B.each_row() %= signs;
-    R.each_col() %= signs.t();
-    R.each_row() %= signs;
+    Phi.each_col() %= signs.t();
+    Phi.each_row() %= signs;
 }
 
 //' Fix canonical form of a bi-factor solution
@@ -333,7 +333,7 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
                    double tol1 = 1e-6, double tol2 = 1e-6, double tol3 = 1e-6,
                    bool verbose = true, int v_every = 10,
                    double c1 = 4, double c2 = 0.25,
-                   double p = 1, const double rho_max = 1e6,
+                   double p = 1, const double rho_max = 1e8,
                    const double delta = .1) {
 
     // Input validation

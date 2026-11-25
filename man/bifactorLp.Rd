@@ -18,12 +18,12 @@ bifactorLp(
   tol1 = 1e-05,
   tol2 = 1e-05,
   tol3 = 1e-05,
-  verbose = TRUE,
+  verbose = FALSE,
   v_every = 10L,
   c1 = 4,
   c2 = 0.25,
   p = 1,
-  rho_max = 1e+06,
+  rho_max = 1e+08,
   delta = 0.01,
   nstart = 0L,
   ostart = TRUE,
@@ -69,12 +69,12 @@ Ignored when \code{nstart > 1}.}
 
 \item{p}{Exponent in Qp (must be in (0,1]). Closed form solutions for 1/2, 2/3, 1. Default 1.}
 
-\item{rho_max}{Maximum value for the penalty parameter. Default 1e6.}
+\item{rho_max}{Maximum value for the penalty parameter. Default 1e8.}
 
 \item{delta}{Gap in back-tracking step (must be in (0,1)). Default 0.1.}
 
 \item{nstart}{Number of random starts. Default 0 (no random restarts).
-When \code{nstart > 0}, each start uses a random orthogonal rotation of \code{A}
+When \code{nstart > 0}, each start uses a random orthogonal rotation of group-block in \code{A}
 and the solution with the smallest objective value is returned.}
 
 \item{ostart}{Logical; orthogonal rotation for random starts? Default TRUE.}
