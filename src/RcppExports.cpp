@@ -11,18 +11,6 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// fixB
-Rcpp::List fixB(const arma::mat& B, Rcpp::Nullable<Rcpp::NumericMatrix> Phi);
-RcppExport SEXP _bifacLpRot_fixB(SEXP BSEXP, SEXP PhiSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type B(BSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<Rcpp::NumericMatrix> >::type Phi(PhiSEXP);
-    rcpp_result_gen = Rcpp::wrap(fixB(B, Phi));
-    return rcpp_result_gen;
-END_RCPP
-}
 // kappa0
 double kappa0(arma::mat& B);
 RcppExport SEXP _bifacLpRot_kappa0(SEXP BSEXP) {
@@ -77,7 +65,6 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_bifacLpRot_fixB", (DL_FUNC) &_bifacLpRot_fixB, 2},
     {"_bifacLpRot_kappa0", (DL_FUNC) &_bifacLpRot_kappa0, 1},
     {"_bifacLpRot_freeR", (DL_FUNC) &_bifacLpRot_freeR, 1},
     {"_bifacLpRot_ALM_cpp", (DL_FUNC) &_bifacLpRot_ALM_cpp, 20},

@@ -1,13 +1,13 @@
 # Main functions ----
 
 output_bifacLp = function(res, A, p, orthogonal, call) {
-    K <- ncol(res$B)
-    dimnames(res$B) <- list(rownames(A), c("GF", paste0("SF", seq_len(K - 1))))
-    dimnames(res$Phi) <- list(colnames(res$B), colnames(res$B))
-    res$p          <- p
-    res$orthogonal <- orthogonal
-    res$call       <- call
-    class(res)     <- "bifacLpRot"
+    K = ncol(res$B)
+    dimnames(res$B) = list(rownames(A), c("GF", paste0("SF", seq_len(K - 1))))
+    dimnames(res$Phi) = list(colnames(res$B), colnames(res$B))
+    res$p          = p
+    res$orthogonal = orthogonal
+    res$call       = call
+    class(res)     = "bifacLpRot"
     res
 }
 
@@ -67,7 +67,7 @@ output_bifacLp = function(res, A, p, orthogonal, call) {
 #' @examples
 #' \dontrun{
 #' set.seed(1234)
-#' A <- matrix(0, 20, 4) # A 20 x 4 Factor loading matrix
+#' A = matrix(0, 20, 4) # A 20 x 4 Factor loading matrix
 #' A[,1] = runif(20, 0, 1) # Bi-factor structure, first factor
 #' A[,2] = runif(20, 0, 1) * rbinom(20, 1, 1/3)
 #' A[,3] = runif(20, 0, 1) * rbinom(20, 1, 1/3)
@@ -79,10 +79,10 @@ output_bifacLp = function(res, A, p, orthogonal, call) {
 #' Ah = (A)%*%(Tr)
 #'
 #' # Single start
-#' res <- bifacLpRot::bifactorLp(Ah)
+#' res = bifacLpRot::bifactorLp(Ah)
 #'
 #' # Multiple random starts in parallel
-#' res <- bifacLpRot::bifactorLp(Ah, nstart = 10, ncores = 4, seed = 1234)
+#' res = bifacLpRot::bifactorLp(Ah, nstart = 10, ncores = 4, seed = 1234)
 #' }
 #'
 #' @export
@@ -99,10 +99,10 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 
     # Input validation ----
     if(is.null(A)) stop("Factor loading matrix A must be included.")
-    if (!is.matrix(A)) A <- as.matrix(A)
-    if (!is.null(Phi) && !is.matrix(Phi)) Phi <- as.matrix(Phi)
-    if (!is.null(B_start) && !is.matrix(B_start)) B_start <- as.matrix(B_start)
-    if (!is.null(Phi_start) && !is.matrix(Phi_start)) Phi_start <- as.matrix(Phi_start)
+    if (!is.matrix(A)) A = as.matrix(A)
+    if (!is.null(Phi) && !is.matrix(Phi)) Phi = as.matrix(Phi)
+    if (!is.null(B_start) && !is.matrix(B_start)) B_start = as.matrix(B_start)
+    if (!is.null(Phi_start) && !is.matrix(Phi_start)) Phi_start = as.matrix(Phi_start)
 
     maxit_ou = as.integer(maxit_ou)
     maxit_in = as.integer(maxit_in)
@@ -115,12 +115,12 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     # Auto-detect cores when nstart > 0 and ncores not specified
     if (nstart > 0L && is.null(ncores)) {
         if (requireNamespace("future", quietly = TRUE)) {
-            ncores <- future::availableCores() - 2
+            ncores = future::availableCores() - 2
         } else {
-            ncores <- 1L
+            ncores = 1L
         }
     } else {
-        ncores <- if (is.null(ncores)) 1L else as.integer(ncores)
+        ncores = if (is.null(ncores)) 1L else as.integer(ncores)
     }
     if (ncores < 1L) stop("ncores must be >= 1")
 
@@ -135,7 +135,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 
     # Single start ----
     if (nstart == 0L) {
-        result <- ALM_cpp(
+        result = ALM_cpp(
             A0_ = A,
             Phi0_ = Phi,
             Bstart_ = B_start,
@@ -312,8 +312,8 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 # Methods ----
 
 .format_p <- function(p) {
-    known <- c(`1` = 1, `2/3` = 2/3, `1/2` = 1/2)
-    hit <- which(abs(p - known) < 1e-10)
+    known = c(`1` = 1, `2/3` = 2/3, `1/2` = 1/2)
+    hit = which(abs(p - known) < 1e-10)
     if (length(hit)) names(known)[hit] else format(signif(p, 3))
 }
 
@@ -327,17 +327,17 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 #' @param ... Unused.
 #' @export
 print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, colord = NULL, ...) {
-    zero_tol <- sqrt(.Machine$double.eps)
-    orth <- isTRUE(x$orthogonal)
-    L    <- unclass(x$B)
-    J    <- nrow(L)
-    K    <- ncol(L)
+    zero_tol = sqrt(.Machine$double.eps)
+    orth = isTRUE(x$orthogonal)
+    L    = unclass(x$B)
+    J    = nrow(L)
+    K    = ncol(L)
     if(is.null(colord)) colord = 1:K
-    Phi  <- if (orth || is.null(x$Phi)) diag(K) else x$Phi
-    dimnames(Phi) <- list(colnames(L), colnames(L))
+    Phi  = if (orth || is.null(x$Phi)) diag(K) else x$Phi
+    dimnames(Phi) = list(colnames(L), colnames(L))
 
     # --- Convergence header ---
-    multi <- isTRUE(x$nstart > 0)
+    multi = isTRUE(x$nstart > 0)
     cat(if (orth) "Orthogonal" else "Oblique",
         " bi-factor Lp rotation (p = ", .format_p(x$p), ")",
         if (!isTRUE(x$converged)) " NOT", " converged",
@@ -345,18 +345,18 @@ print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, colord = NULL, ...) 
 
     # --- Random-start diagnostics ---
     if (multi) {
-        n    <- length(x$all.feas)
-        feas <- x$all.feas
-        conv <- x$all.conv[seq_len(n)]
-        obj  <- x$all.obje[seq_len(n)]
+        n    = length(x$all.feas)
+        feas = x$all.feas
+        conv = x$all.conv[seq_len(n)]
+        obj  = x$all.obje[seq_len(n)]
         cat("Of ", n, " random starts ", round(100 * mean(conv)), "% converged, ",
             round(100 * mean(feas)), "% feasible", sep = "")
         if (any(feas)) {
-            q   <- obj[feas]
-            tol <- 1e-3 * max(1, abs(min(q)))     # objective values agree to ~3 digits
+            q   = obj[feas]
+            tol = 1e-3 * max(1, abs(min(q)))     # objective values agree to ~3 digits
             cat(", ", round(100 * sum(abs(q - min(q)) < tol) / n),
                 "% at the same lowest minimum.\n", sep = "")
-            n_min <- length(unique(round(q / tol)))
+            n_min = length(unique(round(q / tol)))
             if (n_min > 1)
                 cat("Feasible starts converged to ", n_min,
                     " different local minima.\n", sep = "")
@@ -367,22 +367,22 @@ print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, colord = NULL, ...) 
 
     # --- Loadings ---
     cat(if (multi) "\nLoadings at lowest minimum:\n" else "\nLoadings:\n")
-    fx <- format(round(L[,colord], digits))
-    fx[abs(L) < max(cutoff, zero_tol)] <- strrep(" ", nchar(fx[1L]))
+    fx = format(round(L[,colord], digits))
+    fx[abs(L) < max(cutoff, zero_tol)] = strrep(" ", nchar(fx[1L]))
     print(fx, quote = FALSE, right = TRUE)
 
     # --- Variance explained (same definitions as GPArotation) ---
-    vx <- diag(Phi[colord,colord] %*% crossprod(L[,colord]))          # equals colSums(L^2) when Phi = I
-    names(vx) <- colnames(L[,colord])
-    varex <- rbind(`SS loadings` = vx)
+    vx = diag(Phi[colord,colord] %*% crossprod(L[,colord]))          # equals colSums(L^2) when Phi = I
+    names(vx) = colnames(L[,colord])
+    varex = rbind(`SS loadings` = vx)
     if (orth) {
-        varex <- rbind(varex, `Proportion Var` = vx / J)
-        if (K > 1) varex <- rbind(varex, `Cumulative Var` = cumsum(vx / J))
+        varex = rbind(varex, `Proportion Var` = vx / J)
+        if (K > 1) varex = rbind(varex, `Cumulative Var` = cumsum(vx / J))
     }
     cat("\n")
     print(round(varex, digits))
 
-    n_zero <- sum(abs(L[,colord][, -1, drop = FALSE]) < cutoff)
+    n_zero = sum(abs(L[,colord][, -1, drop = FALSE]) < cutoff)
     cat("\nLoadings within cut-off in group-factor block: ", n_zero, " of ", J * (K - 1),
         "\n", sep = "")
 
@@ -405,9 +405,11 @@ print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, colord = NULL, ...) 
 
 #' Generate a population bi-factor loading matrix
 #'
-#' @param P Number of items.
+#' @param J Number of items.
 #' @param K Total number of factors (1 general + K - 1 group factors).
 #' @param type One of "sparse", "cluster", or "mix".
+#' @param load_floor Lower bound on Uniform distribution to generate random loadings. Default 0.0
+#' @param load_ceil Upper bound on Uniform distribution to generate random loadings. Default 2.0
 #' @param prop Logical; if TRUE, proportionality constraints are (approximately) satisfied.
 #' @param n_simple Minimum number of simple items per group factor, i.e.
 #'   items that load on the general factor and on exactly one group factor.
@@ -416,51 +418,97 @@ print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, colord = NULL, ...) 
 #' @param p_sparse For type = "sparse": probability that a non-anchor group
 #'   loading is non-zero.
 #' @param seed Optional integer seed.
-#' @return A P x K loading matrix; column 1 is the general factor.
+#' @return A J x K loading matrix; column 1 is the general factor.
 #' @export
-sim_Astar <- function(P, K, type = c("sparse", "cluster", "mix"),
+sim_Astar <- function(J, K, type = c("sparse", "cluster", "mix"),
                       load_floor = 0.0, load_ceil = 2.0,
                       prop = FALSE, n_simple = 3L, overlap = 2L,
                       p_sparse = 1/3, seed = NULL) {
-    type <- match.arg(type)
-    G <- K - 1L  # number of group factors
-    stopifnot(K >= 2, n_simple >= 1, P >= n_simple * G)
+    type = match.arg(type)
+    G = K - 1L  # number of group factors
+    stopifnot(K >= 2, n_simple >= 1, J >= n_simple * G)
     if (!is.null(seed)) set.seed(seed)
 
-    gen_rng <- if (prop) c(0.5*load_ceil, load_ceil) else c(load_floor, load_ceil)
-    grp_rng <- if (prop) c(0.25*load_ceil, 0.5*load_ceil) else c(load_floor, load_ceil)
+    gen_rng = if (prop) c(0.5*load_ceil, load_ceil) else c(load_floor, load_ceil)
+    grp_rng = if (prop) c(0.25*load_ceil, 0.5*load_ceil) else c(load_floor, load_ceil)
 
-    # Support of the group-factor block (P x G, logical) ----
-    S <- matrix(FALSE, P, G)
+    # Support of the group-factor block (J x G, logical) ----
+    S = matrix(FALSE, J, G)
     if (type == "sparse") {
         # First n_simple * G rows are anchors: n_simple simple items per group
-        anchors <- seq_len(n_simple * G)
-        S[cbind(anchors, rep(seq_len(G), each = n_simple))] <- TRUE
-        rest <- setdiff(seq_len(P), anchors)
-        S[rest, ] <- stats::rbinom(length(rest) * G, 1, p_sparse) == 1
+        anchors = seq_len(n_simple * G)
+        S[cbind(anchors, rep(seq_len(G), each = n_simple))] = TRUE
+        rest = setdiff(seq_len(J), anchors)
+        S[rest, ] = stats::rbinom(length(rest) * G, 1, p_sparse) == 1
     } else {
         # Contiguous blocks; for "mix", adjacent blocks share `overlap` items
-        cuts <- round(seq(0, P, length.out = G + 1))
-        ext_lo <- if (type == "mix") ceiling(overlap / 2) else 0L
-        ext_hi <- if (type == "mix") floor(overlap / 2)   else 0L
+        cuts = round(seq(0, J, length.out = G + 1))
+        ext_lo = if (type == "mix") ceiling(overlap / 2) else 0L
+        ext_hi = if (type == "mix") floor(overlap / 2)   else 0L
         for (g in seq_len(G)) {
-            lo <- max(1L, cuts[g] + 1L - if (g > 1) ext_lo else 0L)
-            hi <- min(P,  cuts[g + 1]  + if (g < G) ext_hi else 0L)
-            S[lo:hi, g] <- TRUE
+            lo = max(1L, cuts[g] + 1L - if (g > 1) ext_lo else 0L)
+            hi = min(J,  cuts[g + 1]  + if (g < G) ext_hi else 0L)
+            S[lo:hi, g] = TRUE
         }
     }
 
     # Check the simple-item requirement ----
-    simple   <- rowSums(S) == 1L
-    n_simple_g <- colSums(S & simple)
+    simple   = rowSums(S) == 1L
+    n_simple_g = colSums(S & simple)
     if (any(n_simple_g < n_simple)) {
-        stop(sprintf("Group factor(s) %s have fewer than %d simple items; increase P or reduce overlap.",
+        stop(sprintf("Group factor(s) %s have fewer than %d simple items; increase J or reduce overlap.",
                      paste(which(n_simple_g < n_simple), collapse = ", "), n_simple))
     }
 
     # Draw loadings on the support ----
-    A <- matrix(0, P, K)
-    A[, 1] <- stats::runif(P, gen_rng[1], gen_rng[2])
-    A[, -1][S] <- stats::runif(sum(S), grp_rng[1], grp_rng[2])
+    A = matrix(0, J, K)
+    A[, 1] = stats::runif(J, gen_rng[1], gen_rng[2])
+    A[, -1][S] = stats::runif(sum(S), grp_rng[1], grp_rng[2])
+    colnames(A) = c("GF", paste0("SF",1:G))
+    rownames(A) = paste0("Y",1:J)
     A
+}
+
+
+#' Fix canonical form of a bi-factor solution
+#'
+#' Orders the group-factor columns of \code{B} by decreasing sum of squared
+#' loadings and makes the largest-magnitude loading in each column positive.
+#' The same signed permutation is applied to \code{Phi}, so
+#' \code{B \%*\% Phi \%*\% t(B)} is unchanged.
+#'
+#' @param B Loading matrix (J x K).
+#' @param Phi Optional K x K factor correlation matrix. Defaults to the identity.
+#' @return A list with the transformed loading matrix \code{B}, the factor
+#'   correlation matrix \code{Phi}, the column permutation \code{perm}, and
+#'   the column signs \code{signs} (applied after \code{perm}).
+#' @export
+fixB <- function(B, Phi = NULL) {
+    B = as.matrix(B)
+    K = ncol(B)
+    if (K == 0L) stop("B must have at least one column.")
+    if (is.null(Phi)) {
+        Phi = diag(K)
+    } else {
+        Phi = as.matrix(Phi)
+        if (!identical(dim(Phi), c(K, K)))
+            stop(sprintf("Phi must be a %d x %d matrix.", K, K))
+    }
+
+    perm = if (K > 1L) {
+        order(colSums(B^2), decreasing = TRUE)
+    } else {
+        1L
+    }
+    B   = B[, perm, drop = FALSE]
+    Phi = Phi[perm, perm, drop = FALSE]
+
+    imax  = apply(abs(B), 2L, which.max)
+    signs = ifelse(B[cbind(imax, seq_len(K))] >= 0, 1, -1)
+    B     = sweep(B, 2L, signs, `*`)
+    Phi   = Phi * tcrossprod(signs)
+
+    if (!is.null(colnames(B))) dimnames(Phi) = list(colnames(B), colnames(B))
+
+    list(B = B, Phi = Phi, perm = perm, signs = unname(signs))
 }

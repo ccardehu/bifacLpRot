@@ -5,11 +5,11 @@
 \title{Generate a population bi-factor loading matrix}
 \usage{
 sim_Astar(
-  P,
+  J,
   K,
   type = c("sparse", "cluster", "mix"),
-  load_ceil = 2,
   load_floor = 0,
+  load_ceil = 2,
   prop = FALSE,
   n_simple = 3L,
   overlap = 2L,
@@ -18,13 +18,17 @@ sim_Astar(
 )
 }
 \arguments{
-\item{P}{Number of items.}
+\item{J}{Number of items.}
 
 \item{K}{Total number of factors (1 general + K - 1 group factors).}
 
 \item{type}{One of "sparse", "cluster", or "mix".}
 
-\item{prop}{Logical; if TRUE, proportionality constraints are (approximately) satistfied.}
+\item{load_floor}{Lower bound on Uniform distribution to generate random loadings. Default 0.0}
+
+\item{load_ceil}{Upper bound on Uniform distribution to generate random loadings. Default 2.0}
+
+\item{prop}{Logical; if TRUE, proportionality constraints are (approximately) satisfied.}
 
 \item{n_simple}{Minimum number of simple items per group factor, i.e.
 items that load on the general factor and on exactly one group factor.}
@@ -35,10 +39,10 @@ adjacent blocks.}
 \item{p_sparse}{For type = "sparse": probability that a non-anchor group
 loading is non-zero.}
 
-\item{seed}{Optional integer seed. The global RNG state is restored on exit.}
+\item{seed}{Optional integer seed.}
 }
 \value{
-A P x K loading matrix; column 1 is the general factor.
+A J x K loading matrix; column 1 is the general factor.
 }
 \description{
 Generate a population bi-factor loading matrix

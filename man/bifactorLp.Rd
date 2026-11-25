@@ -53,13 +53,13 @@ Ignored when \code{nstart > 1}.}
 
 \item{orthogonal}{Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.}
 
-\item{tol1}{Convergence tolerance for average successive parameter change (outer loop). Default 1e-5.}
+\item{tol1}{Convergence tol. for avg. successive parameter change (outer loop). Default 1e-5.}
 
-\item{tol2}{Convergence tolerance for constraint violation check. Default 1e-5.}
+\item{tol2}{Convergence tol. for constraint violation check. Default 1e-5.}
 
-\item{tol3}{Convergence tolerance for successive parameter change (inner loop). Default 1e-5.}
+\item{tol3}{Convergence tol. for successive parameter change (inner loop). Default 1e-5.}
 
-\item{verbose}{Logical; print progress. Default TRUE.}
+\item{verbose}{Logical; print progress. Default FALSE.}
 
 \item{v_every}{Print frequency (every v_every outer iterations). Default 10.}
 
@@ -113,7 +113,7 @@ Lp rotation for Generalized Bi-factor Models
 \examples{
 \dontrun{
 set.seed(1234)
-A <- matrix(0, 20, 4) # A 20 x 4 Factor loading matrix
+A = matrix(0, 20, 4) # A 20 x 4 Factor loading matrix
 A[,1] = runif(20, 0, 1) # Bi-factor structure, first factor
 A[,2] = runif(20, 0, 1) * rbinom(20, 1, 1/3)
 A[,3] = runif(20, 0, 1) * rbinom(20, 1, 1/3)
@@ -125,10 +125,10 @@ Tr = rbind(c(1, rep(0, ncol(A)-1)), cbind(rep(0, ncol(A)-1), Tr))
 Ah = (A)\%*\%(Tr)
 
 # Single start
-res <- bifacLpRot::bifactorLp(Ah)
+res = bifacLpRot::bifactorLp(Ah)
 
 # Multiple random starts in parallel
-res <- bifacLpRot::bifactorLp(Ah, nstart = 10, ncores = 4, seed = 1234)
+res = bifacLpRot::bifactorLp(Ah, nstart = 10, ncores = 4, seed = 1234)
 }
 
 }

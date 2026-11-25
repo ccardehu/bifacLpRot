@@ -212,38 +212,6 @@ void fixB_internal(arma::mat& B,
     Phi.each_row() %= signs;
 }
 
-//' Fix canonical form of a bi-factor solution
-//'
-//' Orders the group-factor columns of \code{B} by decreasing sum of squared
-//' loadings and makes the largest-magnitude loading in each column positive.
-//' The same signed permutation is applied to \code{Phi}, so
-//' \code{B \%*\% Phi \%*\% t(B)} is unchanged.
-//'
-//' @param B Loading matrix (J x K).
-//' @param Phi Optional K x K factor correlation matrix. Defaults to the identity.
-//' @return A list with the transformed loading matrix \code{B} and factor
-//'   correlation matrix \code{Phi}.
-//' @export
-// [[Rcpp::export]]
-Rcpp::List fixB(const arma::mat& B,
-             Rcpp::Nullable<Rcpp::NumericMatrix> Phi = R_NilValue) {
- const arma::uword K = B.n_cols;
- if (K == 0) Rcpp::stop("B must have at least one column.");
-
- arma::mat Bout   = B;
- arma::mat Phiout = Phi.isNotNull() ? Rcpp::as<arma::mat>(Phi.get())
-     : arma::eye(K, K);
- if (Phiout.n_rows != K || Phiout.n_cols != K) {
-     Rcpp::stop("Phi must be a %i x %i matrix.",
-                static_cast<int>(K), static_cast<int>(K));
- }
-
- fixB_internal(Bout, Phiout);
-
- return Rcpp::List::create(Rcpp::Named("B")   = Bout,
-                           Rcpp::Named("Phi") = Phiout);
-}
-
 //' Compute reciprocal L2-condition number
 //'
 //' @param B Loading matrix
