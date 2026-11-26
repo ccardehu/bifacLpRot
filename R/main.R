@@ -383,7 +383,7 @@ print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, colord = NULL, ...) 
     print(round(varex, digits))
 
     n_zero = sum(abs(L[,colord][, -1, drop = FALSE]) < cutoff)
-    cat("\nLoadings within cut-off in group-factor block: ", n_zero, " of ", J * (K - 1),
+    cat("\nLoadings within cut-off (c0 = ",cutoff,") in group-factor block: ", n_zero, " of ", J * (K - 1),
         "\n", sep = "")
 
     # --- Phi (oblique only) ---
