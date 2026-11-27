@@ -13,20 +13,19 @@ bifactorLp(
   t = 0.001,
   maxit_ou = 4000,
   maxit_in = 400,
-  maxit_bt = 40,
+  maxit_bt = 20,
   orthogonal = FALSE,
   tol1 = 1e-05,
   tol2 = 1e-05,
   tol3 = 1e-05,
   verbose = FALSE,
   v_every = 10L,
-  c1 = 4,
+  c1 = 10,
   c2 = 0.25,
   p = 1,
   rho_max = 1e+08,
-  delta = 0.01,
+  delta = 0.1,
   nstart = 0L,
-  ostart = TRUE,
   seed = NULL,
   ncores = 1
 )
@@ -49,13 +48,13 @@ Ignored when \code{nstart > 1}.}
 
 \item{maxit_in}{Maximum inner iterations. Default 400.}
 
-\item{maxit_bt}{Maximum back-tracking iterations. Default 40.}
+\item{maxit_bt}{Maximum back-tracking iterations. Default 20.}
 
 \item{orthogonal}{Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.}
 
 \item{tol1}{Convergence tol. for avg. successive parameter change (outer loop). Default 1e-5.}
 
-\item{tol2}{Convergence tol. for constraint violation check. Default 1e-5.}
+\item{tol2}{Convergence tol. for absolute constraint violation check. Default 1e-5.}
 
 \item{tol3}{Convergence tol. for successive parameter change (inner loop). Default 1e-5.}
 
@@ -63,7 +62,7 @@ Ignored when \code{nstart > 1}.}
 
 \item{v_every}{Print frequency (every v_every outer iterations). Default 10.}
 
-\item{c1}{Multiplicative factor for rho increase (must be > 1). Default 4.}
+\item{c1}{Multiplicative factor for rho increase (must be > 1). Default 10.}
 
 \item{c2}{Threshold for rho update (must be in (0,1)). Default 0.25.}
 
@@ -77,15 +76,11 @@ Ignored when \code{nstart > 1}.}
 When \code{nstart > 0}, each start uses a random orthogonal rotation of group-block in \code{A}
 and the solution with the smallest objective value is returned.}
 
-\item{ostart}{Logical; orthogonal rotation for random starts? Default TRUE.}
-
 \item{seed}{Optional integer seed for reproducibility of random starts. Default NULL.}
 
 \item{ncores}{Number of parallel workers. Default 1 (sequential).
 Requires the \code{future} and \code{future.apply} packages for \code{ncores > 1}.
 If NULL, defaults to \code{ncores = future::availableCores() - 2}.}
-
-\item{refine}{Logical; refine best solution from obtained starting values? Default FALSE.}
 }
 \value{
 A list containing:

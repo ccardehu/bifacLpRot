@@ -228,15 +228,15 @@ arma::vec freeR(arma::mat& R) {
     return sub.elem(arma::trimatl_ind(arma::size(sub)));
 }
 
-void bt4B(arma::mat& B, arma::mat& Bn, arma::mat& R, arma::mat& L,
+bool bt4B(arma::mat& B, arma::mat& Bn, arma::mat& R, arma::mat& L,
           const arma::mat& AAt, double rho1,
           arma::mat& grad, double& t, double p,
           const std::function<arma::mat(arma::mat, arma::vec)>& ProxB,
           const int maxit_bt = 20, const double delta = 0.1) {
-
-    double fx = obj2(B, R, L, AAt, rho1);
-    arma::mat Ph = R * R.t();
-    double Qp_old = Qp(B,p);
+    const double t_entry = t;
+    const double fx = obj2(B, R, L, AAt, rho1);
+    const double Qp_old = Qp(B, p);
+    const bool   convex = std::abs(p - 1.0) < 1e-10;
     arma::vec lam(B.n_elem - B.n_rows);
 
     for (int i = 0; i < maxit_bt; ++i) {
@@ -244,40 +244,97 @@ void bt4B(arma::mat& B, arma::mat& Bn, arma::mat& R, arma::mat& L,
         Bn = B - t * grad;
         Bn.cols(1, B.n_cols - 1) = ProxB(Bn.cols(1, B.n_cols - 1), lam);
 
-        // Quadratic upper bound check smooth h(B,Phi) when p == 1 (i.e., convex)
-        arma::mat diff = Bn - B;
-        double fnew  = obj2(Bn, R, L, AAt, rho1);
-        double linear = arma::accu(grad % diff);
-        double quad   = (1.0-delta) * arma::accu(arma::square(diff)) / (2.0 * t);
-        bool ista_ok = (fnew <= fx + linear + quad);
-
-        // Added check for non-convex settings (p < 1): require descent on Q_p + h
-        bool descent_ok = true;
-        if (std::abs(p - 1.0) >= 1e-10) {
-            double Qp_new = Qp(Bn,p);
-            descent_ok = (fnew + Qp_new <= fx + Qp_old);
+        if (Bn.is_finite()) {
+            const arma::mat diff = Bn - B;
+            const double fnew = obj2(Bn, R, L, AAt, rho1);
+            const double linear = arma::accu(grad % diff);
+            const double quad = (1.0 - delta) * arma::accu(arma::square(diff)) / (2.0 * t);
+            const bool ista_ok = (fnew <= fx + linear + quad);
+            // For p < 1 (non-convex Q_p), also require descent on S + Q_p
+            const bool descent_ok = convex || (fnew + Qp(Bn, p) <= fx + Qp_old);
+            if (ista_ok && descent_ok) return true;
         }
-        if (ista_ok && descent_ok) return;
         t *= 0.5;
     }
+    Bn = B;
+    t  = t_entry;
+    return false;
 }
 
-void bt4R(arma::mat& B, arma::mat& R, arma::mat& Rn, arma::mat& L,
+// void bt4B(arma::mat& B, arma::mat& Bn, arma::mat& R, arma::mat& L,
+//           const arma::mat& AAt, double rho1,
+//           arma::mat& grad, double& t, double p,
+//           const std::function<arma::mat(arma::mat, arma::vec)>& ProxB,
+//           const int maxit_bt = 20, const double delta = 0.1) {
+//
+//     double fx = obj2(B, R, L, AAt, rho1);
+//     arma::mat Ph = R * R.t();
+//     double Qp_old = Qp(B,p);
+//     arma::vec lam(B.n_elem - B.n_rows);
+//
+//     for (int i = 0; i < maxit_bt; ++i) {
+//         lam.fill(t);
+//         Bn = B - t * grad;
+//         Bn.cols(1, B.n_cols - 1) = ProxB(Bn.cols(1, B.n_cols - 1), lam);
+//
+//         // Quadratic upper bound check smooth h(B,Phi) when p == 1 (i.e., convex)
+//         arma::mat diff = Bn - B;
+//         double fnew  = obj2(Bn, R, L, AAt, rho1);
+//         double linear = arma::accu(grad % diff);
+//         double quad   = (1.0-delta) * arma::accu(arma::square(diff)) / (2.0 * t);
+//         bool ista_ok = (fnew <= fx + linear + quad);
+//
+//         // Added check for non-convex settings (p < 1): require descent on Q_p + h
+//         bool descent_ok = true;
+//         if (std::abs(p - 1.0) >= 1e-10) {
+//             double Qp_new = Qp(Bn,p);
+//             descent_ok = (fnew + Qp_new <= fx + Qp_old);
+//         }
+//         if (ista_ok && descent_ok) return;
+//         t *= 0.5;
+//     }
+// }
+
+bool bt4R(arma::mat& B, arma::mat& R, arma::mat& Rn, arma::mat& L,
           const arma::mat& AAt, double rho1,
           arma::mat& grad, double& t,
           const int maxit_bt = 20, const double delta = 0.1) {
-    double fx = obj2(B, R, L, AAt, rho1);
+    const double t_entry = t;
+    const double fx = obj2(B, R, L, AAt, rho1);
+
     for (int i = 0; i < maxit_bt; ++i) {
         Rn = R - t * grad;
         ProxL(Rn);
-        arma::mat diff = Rn - R;
-        double fnew  = obj2(B, Rn, L, AAt, rho1);
-        double linear = arma::accu(grad % diff);
-        double quad   = (1.0-delta) * arma::accu(arma::square(diff)) / (2.0 * t);
-        if (fnew <= fx + linear + quad) return;
+        if (Rn.is_finite()) {
+            const arma::mat diff = Rn - R;
+            const double fnew = obj2(B, Rn, L, AAt, rho1);
+            const double linear = arma::accu(grad % diff);
+            const double quad = (1.0 - delta) * arma::accu(arma::square(diff)) / (2.0 * t);
+            if (fnew <= fx + linear + quad) return true;
+        }
         t *= 0.5;
     }
+    Rn = R;
+    t  = t_entry;
+    return false;
 }
+
+// void bt4R(arma::mat& B, arma::mat& R, arma::mat& Rn, arma::mat& L,
+//           const arma::mat& AAt, double rho1,
+//           arma::mat& grad, double& t,
+//           const int maxit_bt = 20, const double delta = 0.1) {
+//     double fx = obj2(B, R, L, AAt, rho1);
+//     for (int i = 0; i < maxit_bt; ++i) {
+//         Rn = R - t * grad;
+//         ProxL(Rn);
+//         arma::mat diff = Rn - R;
+//         double fnew  = obj2(B, Rn, L, AAt, rho1);
+//         double linear = arma::accu(grad % diff);
+//         double quad   = (1.0-delta) * arma::accu(arma::square(diff)) / (2.0 * t);
+//         if (fnew <= fx + linear + quad) return;
+//         t *= 0.5;
+//     }
+// }
 
 // arma::mat commutation_matrix(int p, int q) {
 //     arma::mat K(p * q, p * q, arma::fill::zeros);
@@ -296,13 +353,13 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
                    Rcpp::Nullable<arma::mat> Phistart_ = R_NilValue,
                    double rho = 10,
                    double t = 1e-3,
-                   int maxit_ou = 4e3, int maxit_in = 4e2, int maxit_bt = 4e1,
+                   int maxit_ou = 4e3, int maxit_in = 4e2, int maxit_bt = 2e1,
                    bool orthogonal = false,
                    double tol1 = 1e-6, double tol2 = 1e-6, double tol3 = 1e-6,
                    bool verbose = true, int v_every = 10,
-                   double c1 = 4, double c2 = 0.25,
+                   double c1 = 10, double c2 = 0.25,
                    double p = 1, const double rho_max = 1e8,
-                   const double delta = .1) {
+                   const double delta = 0.1) {
 
     // Input validation
     if (c1 <= 1.0) Rcpp::stop("Fix c1 argument, must be c1 > 1");
@@ -338,7 +395,7 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
         Rcpp::Rcout << "\n Qp(B) (iter: 0): " << std::fixed << std::setprecision(3) << outn;
     }
 
-    int i = 0;
+    int i = 0, bt_fails = 0;
     double critR1 = 0, stopC1 = 0;
 
     // Protect against floating point in p
@@ -360,13 +417,11 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
     tol2 = std::max(tol2, std::sqrt(arma::datum::eps));
     tol3 = std::max(tol3, std::sqrt(arma::datum::eps));
     bool converged = false;
-    // arma::vec ihess = arma::ones<arma::vec>(B.n_elem);
-    // arma::mat ihgb(arma::size(B));
+    double tB = t , tR = t ;
 
     for (i = 0; i < maxit_ou; i++) {
         if (i % 10 == 0) Rcpp::checkUserInterrupt();
-        double tB = t ;
-        double tR = t ;
+        // double tB = t , tR = t ;
         arma::mat Bo = B;
         arma::mat Ro = R;
         arma::mat Phio = Ro * Ro.t();
@@ -379,29 +434,24 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
 
             // in-place backtracking fix for Bn
             arma::mat gradb = gradB(B, R, L, AAt, rho);
-            bt4B(B, Bn, R, L, AAt, rho, gradb, tB, p, ProxB, maxit_bt, delta);
+            const bool okB = bt4B(B, Bn, R, L, AAt, rho, gradb, tB, p, ProxB, maxit_bt, delta);
 
-            if (!Bn.is_finite()) {
-                Rcpp::stop("Check B at iter: %i, inner: %i", i+1, j+1);
-            }
+            bool okR = true;
 
             if (!orthogonal) {
                 // in-place backtracking fix for Rn
-                arma::mat gradr = gradR(B, R, L, AAt, rho);
-                bt4R(B, R, Rn, L, AAt, rho, gradr, tR, maxit_bt, delta);
-
-                if (!Rn.is_finite()) {
-                    Rcpp::stop("Check R at iter: %i, inner: %i", i+1, j+1);
-                }
+                arma::mat gradr = gradR(Bn, R, L, AAt, rho);
+                okR = bt4R(Bn, R, Rn, L, AAt, rho, gradr, tR, maxit_bt, delta);
                 critR0 = arma::accu(arma::square(freeR(R) - freeR(Rn)));
             }
-
+            bt_fails += static_cast<int>(!okB) + static_cast<int>(!okR);
             double stopC0 = (arma::accu(arma::square(B - Bn)) + critR0) / NP;
             B = Bn;
             R = Rn;
+            if (!okB && !okR) break;
             if (std::sqrt(stopC0) < tol3) break;
-            tB *= 2.0;
-            tR *= 2.0;
+            if (okB) tB *= 2.0;
+            if (okR) tR *= 2.0;
         }
         Phi = R * R.t();
 
@@ -429,7 +479,13 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
 
         // Adaptive rho update
         double resid_old = arma::norm(AAt - Bo * Phio * Bo.t(), "fro");
-        if (resid_new > c2 * resid_old) rho = std::min(rho*c1, rho_max);
+        if (resid_new > c2 * resid_old){
+            const double rho_new = std::min(rho * c1, rho_max);
+            tB *= rho / rho_new;
+            tR *= rho / rho_new;
+            rho = rho_new;
+        }
+        // rho = std::min(rho*c1, rho_max);
     }
 
     // Final sign fix
@@ -448,6 +504,7 @@ Rcpp::List ALM_cpp(Rcpp::Nullable<arma::mat> A0_,
         Rcpp::Named("tol.end") = std::sqrt(stopC1),
         Rcpp::Named("rho.end") = rho,
         Rcpp::Named("iter.end") = i,
+        Rcpp::Named("bt.fails.end") = bt_fails,
         Rcpp::Named("converged") = converged
     );
 }

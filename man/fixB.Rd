@@ -17,8 +17,8 @@ correlation matrix \code{Phi}, the column permutation \code{perm}, and
 the column signs \code{signs} (applied after \code{perm}).
 }
 \description{
-Orders the group-factor columns of \code{B} by decreasing sum of squared
-loadings and makes the largest-magnitude loading in each column positive.
+Orders the columns of \code{B} by decreasing sum of squared loadings
+and makes the largest-magnitude loading in each column positive.
 The same signed permutation is applied to \code{Phi}, so
 \code{B \%*\% Phi \%*\% t(B)} is unchanged.
 }

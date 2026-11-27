@@ -23,14 +23,14 @@ output_bifacLp = function(res, A, p, orthogonal, call) {
 #' @param t Initial step size. Default 1e-3.
 #' @param maxit_ou Maximum outer iterations. Default 4000.
 #' @param maxit_in Maximum inner iterations. Default 400.
-#' @param maxit_bt Maximum back-tracking iterations. Default 40.
+#' @param maxit_bt Maximum back-tracking iterations. Default 20.
 #' @param orthogonal Logical; if TRUE, constrains factors to be orthogonal. Default FALSE.
 #' @param tol1 Convergence tol. for avg. successive parameter change (outer loop). Default 1e-5.
-#' @param tol2 Convergence tol. for constraint violation check. Default 1e-5.
+#' @param tol2 Convergence tol. for absolute constraint violation check. Default 1e-5.
 #' @param tol3 Convergence tol. for successive parameter change (inner loop). Default 1e-5.
 #' @param verbose Logical; print progress. Default FALSE.
 #' @param v_every Print frequency (every v_every outer iterations). Default 10.
-#' @param c1 Multiplicative factor for rho increase (must be > 1). Default 4.
+#' @param c1 Multiplicative factor for rho increase (must be > 1). Default 10.
 #' @param c2 Threshold for rho update (must be in (0,1)). Default 0.25.
 #' @param p Exponent in Qp (must be in (0,1]). Closed form solutions for 1/2, 2/3, 1. Default 1.
 #' @param rho_max Maximum value for the penalty parameter. Default 1e8.
@@ -38,12 +38,10 @@ output_bifacLp = function(res, A, p, orthogonal, call) {
 #' @param nstart Number of random starts. Default 0 (no random restarts).
 #'   When \code{nstart > 0}, each start uses a random orthogonal rotation of group-block in \code{A}
 #'   and the solution with the smallest objective value is returned.
-#' @param ostart Logical; orthogonal rotation for random starts? Default TRUE.
 #' @param seed Optional integer seed for reproducibility of random starts. Default NULL.
 #' @param ncores Number of parallel workers. Default 1 (sequential).
 #'   Requires the \code{future} and \code{future.apply} packages for \code{ncores > 1}.
 #'   If NULL, defaults to \code{ncores = future::availableCores() - 2}.
-#' @param refine Logical; refine best solution from obtained starting values? Default FALSE.
 #'
 #' @return A list containing:
 #' \itemize{
@@ -90,12 +88,12 @@ output_bifacLp = function(res, A, p, orthogonal, call) {
 #' @importFrom Rcpp sourceCpp
 bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
                        rho = 10, t = 1e-3,
-                       maxit_ou = 4e3, maxit_in = 4e2, maxit_bt = 4e1,
+                       maxit_ou = 4e3, maxit_in = 4e2, maxit_bt = 2e1,
                        orthogonal = FALSE,
                        tol1 = 1e-5, tol2 = 1e-5, tol3 = 1e-5,
                        verbose = FALSE, v_every = 10L,
-                       c1 = 4, c2 = 0.25, p = 1, rho_max = 1e8, delta = .01,
-                       nstart = 0L, ostart = TRUE, seed = NULL, ncores = 1) {
+                       c1 = 10, c2 = 0.25, p = 1, rho_max = 1e8, delta = 0.1,
+                       nstart = 0L, seed = NULL, ncores = 1) {
 
     # Input validation ----
     if(is.null(A)) stop("Factor loading matrix A must be included.")
@@ -183,28 +181,22 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     }
 
     # Helper: generate one random start matrix
-    make_Bstart = function(A, seed_i, ostart) {
+    make_Bstart = function(A, seed_i) {
         set.seed(seed_i)
         K = ncol(A)-1
         Z = matrix(rnorm((K) * (K)), K, K)
-        if(ostart){
-            qrZ = qr(Z)
-            Tr = qr.Q(qrZ)
-            # Sign-correction for Haar distribution
-            d = sign(diag(qr.R(qrZ)))
-            d[d == 0] = 1
-            Tr = Tr * rep(d, each = K)
-            Tr = rbind(c(1, rep(0, K)), cbind(rep(0, K), Tr))
-        } else {
-            d = sqrt(colSums(Z^2)) #sqrt(colSums(Z^2))
-            Tr = sweep(Z, 2, sqrt(colSums(Z^2)), "/") # Z /d #%*% diag(1/d)
-            Tr = rbind(c(1, rep(0, K)), cbind(rep(0, K), Tr))
-        }
+        qrZ = qr(Z)
+        Tr = qr.Q(qrZ)
+        # Sign-correction for Haar distribution
+        d = sign(diag(qr.R(qrZ)))
+        d[d == 0] = 1
+        Tr = Tr * rep(d, each = K)
+        Tr = rbind(c(1, rep(0, K)), cbind(rep(0, K), Tr))
         A %*% Tr
     }
 
     # Pre-generate Starting matrices
-    Bstart_list = lapply(seeds, function(s) make_Bstart(B_start, s, ostart))
+    Bstart_list = lapply(seeds, function(s) make_Bstart(B_start, s))
 
     # Worker function for a single start
     run_one = function(Bs){ # seed_i
@@ -266,6 +258,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     obj_vals = vapply(results, function(r) r$obj.end, numeric(1))
     con_vals = vapply(results, function(r) r$cons.end, numeric(1))
     conv_all = vapply(results, function(r) r$converged, logical(1))
+    bt_fails_all = vapply(results, function(r) r$bt.fails.end, numeric(1))
 
     feas_vals = con_vals #/ froAAt # NJ
     feasible  = feas_vals < tol2
@@ -303,6 +296,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     best$all.cons = con_vals
     best$all.conv = conv_all
     best$all.feas = feasible
+    best$all.btfails = bt_fails_all
     best$time = difftime(toc,tic,units = "secs")
     best$seeds = seeds
     return(output_bifacLp(best, A, p, orthogonal, cl))
@@ -368,7 +362,7 @@ print.bifacLpRot <- function(x, digits = 3L, cutoff = 0.01, colord = NULL, ...) 
     # --- Loadings ---
     cat(if (multi) "\nLoadings at lowest minimum:\n" else "\nLoadings:\n")
     fx = format(round(L[,colord], digits))
-    fx[abs(L) < max(cutoff, zero_tol)] = strrep(" ", nchar(fx[1L]))
+    fx[abs(L[,colord]) < max(cutoff, zero_tol)] = strrep(" ", nchar(fx[1L]))
     print(fx, quote = FALSE, right = TRUE)
 
     # --- Variance explained (same definitions as GPArotation) ---
@@ -472,8 +466,8 @@ sim_Astar <- function(J, K, type = c("sparse", "cluster", "mix"),
 
 #' Fix canonical form of a bi-factor solution
 #'
-#' Orders the group-factor columns of \code{B} by decreasing sum of squared
-#' loadings and makes the largest-magnitude loading in each column positive.
+#' Orders the columns of \code{B} by decreasing sum of squared loadings
+#' and makes the largest-magnitude loading in each column positive.
 #' The same signed permutation is applied to \code{Phi}, so
 #' \code{B \%*\% Phi \%*\% t(B)} is unchanged.
 #'
