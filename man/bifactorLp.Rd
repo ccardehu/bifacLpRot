@@ -115,7 +115,7 @@ A[,3] = runif(20, 0, 1) * rbinom(20, 1, 1/3)
 A[,4] = runif(20, 0, 1) * rbinom(20, 1, 1/3)
 
 # Create orthogonal bi-factor rotation matrix (via random matrix):
-Tr = qr.Q(qr(matrix(rnorm((ncol(A)-1) * (ncol(A)-1)), ncol(A)-1, ncol(A)-1)))
+Tr = qr.Q(qr(matrix(stats::rnorm((ncol(A)-1) * (ncol(A)-1)), ncol(A)-1, ncol(A)-1)))
 Tr = rbind(c(1, rep(0, ncol(A)-1)), cbind(rep(0, ncol(A)-1), Tr))
 Ah = (A)\%*\%(Tr)
 

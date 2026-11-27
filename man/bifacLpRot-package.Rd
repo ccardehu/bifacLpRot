@@ -4,7 +4,7 @@
 \name{bifacLpRot-package}
 \alias{bifacLpRot}
 \alias{bifacLpRot-package}
-\title{bifacLpRot: Lp Rotation for Exploratory Generalized Bi-factor Analysis}
+\title{bifacLpRot: Lp Rotation for Exploratory Approximate Bi-Factor Analysis}
 \description{
 Implements a factor loading rotation for sparse bi-factor models using an augmented Lagrangian optimization with proximal updates of Lp (0<p<=1) penalties.
 }

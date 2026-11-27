@@ -72,7 +72,7 @@ output_bifacLp = function(res, A, p, orthogonal, call) {
 #' A[,4] = runif(20, 0, 1) * rbinom(20, 1, 1/3)
 #'
 #' # Create orthogonal bi-factor rotation matrix (via random matrix):
-#' Tr = qr.Q(qr(matrix(rnorm((ncol(A)-1) * (ncol(A)-1)), ncol(A)-1, ncol(A)-1)))
+#' Tr = qr.Q(qr(matrix(stats::rnorm((ncol(A)-1) * (ncol(A)-1)), ncol(A)-1, ncol(A)-1)))
 #' Tr = rbind(c(1, rep(0, ncol(A)-1)), cbind(rep(0, ncol(A)-1), Tr))
 #' Ah = (A)%*%(Tr)
 #'
@@ -112,8 +112,8 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
 
     # Auto-detect cores when nstart > 0 and ncores not specified
     if (nstart > 0L && is.null(ncores)) {
-        if (requireNamespace("future", quietly = TRUE)) {
-            ncores = future::availableCores() - 2
+        if (requireNamespace("parallelly", quietly = TRUE)) {
+            ncores = parallelly::availableCores() - 2
         } else {
             ncores = 1L
         }
@@ -184,7 +184,7 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     make_Bstart = function(A, seed_i) {
         set.seed(seed_i)
         K = ncol(A)-1
-        Z = matrix(rnorm((K) * (K)), K, K)
+        Z = matrix(stats::rnorm((K) * (K)), K, K)
         qrZ = qr(Z)
         Tr = qr.Q(qrZ)
         # Sign-correction for Haar distribution
@@ -235,9 +235,10 @@ bifactorLp <- function(A, Phi = NULL, B_start = NULL, Phi_start = NULL,
     # Run starts (parallel or sequential)
     if (ncores > 1L) {
         if (!requireNamespace("future", quietly = TRUE) ||
-            !requireNamespace("future.apply", quietly = TRUE)) {
-            stop("Packages 'future' and 'future.apply' are required for parallel execution.\n",
-                 "Install with: install.packages(c('future', 'future.apply'))")
+            !requireNamespace("future.apply", quietly = TRUE) ||
+            !requireNamespace("parallelly", quietly = TRUE)) {
+            stop("Packages 'future', 'future.apply', and 'parallelly' are required for parallel execution.\n",
+                 "Install with: install.packages(c('future', 'future.apply', 'parallelly'))")
         }
         old_plan = future::plan()
         on.exit(future::plan(old_plan), add = TRUE)
